@@ -79,6 +79,58 @@
       "type": "boolean",
       "default": false,
       "description": "Mostrar en tienda online"
+    },
+    "has_variants": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si el producto tiene variantes"
+    },
+    "variants": {
+      "type": "array",
+      "description": "Variantes del producto (tallas, colores, etc.)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre de la variante (ej: Talla M Azul)"
+          },
+          "sku_variant": {
+            "type": "string",
+            "description": "SKU de la variante"
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Atributos de la variante",
+            "properties": {
+              "color": {
+                "type": "string"
+              },
+              "talla": {
+                "type": "string"
+              }
+            }
+          },
+          "price_adjustment": {
+            "type": "number",
+            "default": 0,
+            "description": "Ajuste de precio respecto al precio base"
+          },
+          "stock": {
+            "type": "number",
+            "default": 0,
+            "description": "Stock de esta variante"
+          },
+          "barcode": {
+            "type": "string",
+            "description": "C\u00f3digo de barras de la variante"
+          },
+          "image_url": {
+            "type": "string",
+            "description": "Imagen espec\u00edfica de la variante"
+          }
+        }
+      }
     }
   },
   "required": [

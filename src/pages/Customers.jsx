@@ -12,6 +12,34 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Users, Plus, Search, Edit, Trash2, User } from "lucide-react";
 import { toast } from "sonner";
 
+// Función para formatear nombres con mayúscula inicial
+const formatName = (name) => {
+  return name
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+// Validación de email
+const isValidEmail = (email) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
+// Validación de teléfono español
+const isValidPhone = (phone) => {
+  return /^(\+34|0034|34)?[6789]\d{8}$/.test(phone.replace(/\s/g, ''));
+};
+
+// Validación de DNI/NIE/CIF
+const isValidDniCif = (value) => {
+  const dniRegex = /^\d{8}[A-Z]$/;
+  const nieRegex = /^[XYZ]\d{7}[A-Z]$/;
+  const cifRegex = /^[ABCDEFGHJNPQRSUVW]\d{7}[0-9A-J]$/;
+  
+  return dniRegex.test(value) || nieRegex.test(value) || cifRegex.test(value);
+};
+
 export default function Customers() {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -42,6 +70,9 @@ export default function Customers() {
       resetForm();
       toast.success("Cliente creado exitosamente");
     },
+    onError: (error) => {
+      toast.error("Error al crear cliente: " + error.message);
+    }
   });
 
   const updateMutation = useMutation({
@@ -52,6 +83,9 @@ export default function Customers() {
       resetForm();
       toast.success("Cliente actualizado exitosamente");
     },
+    onError: (error) => {
+      toast.error("Error al actualizar cliente: " + error.message);
+    }
   });
 
   const deleteMutation = useMutation({
@@ -89,12 +123,91 @@ export default function Customers() {
     setIsDialogOpen(true);
   };
 
+  const validateForm = () => {
+    // Validar nombre
+    if (!formData.name.trim()) {
+      toast.error("El nombre es obligatorio");
+      return false;
+    }
+
+    // Validar email si existe
+    if (formData.email && !isValidEmail(formData.email)) {
+      toast.error("Email no válido");
+      return false;
+    }
+
+    // Validar email único
+    if (formData.email) {
+      const emailExists = customers.some(c => 
+        c.email?.toLowerCase() === formData.email.toLowerCase() && 
+        c.id !== editingCustomer?.id
+      );
+      if (emailExists) {
+        toast.error("Ya existe un cliente con este email");
+        return false;
+      }
+    }
+
+    // Validar teléfono
+    if (formData.phone && !isValidPhone(formData.phone)) {
+      toast.error("Teléfono no válido. Debe ser un número español");
+      return false;
+    }
+
+    // Validar teléfono único
+    if (formData.phone) {
+      const phoneExists = customers.some(c => 
+        c.phone === formData.phone && 
+        c.id !== editingCustomer?.id
+      );
+      if (phoneExists) {
+        toast.error("Ya existe un cliente con este teléfono");
+        return false;
+      }
+    }
+
+    // Validar DNI/CIF si existe
+    if (formData.dni_cif) {
+      const upperDniCif = formData.dni_cif.toUpperCase();
+      if (!isValidDniCif(upperDniCif)) {
+        toast.error("DNI/NIE/CIF no válido");
+        return false;
+      }
+
+      // Validar DNI/CIF único
+      const dniCifExists = customers.some(c => 
+        c.dni_cif?.toUpperCase() === upperDniCif && 
+        c.id !== editingCustomer?.id
+      );
+      if (dniCifExists) {
+        toast.error("Ya existe un cliente con este DNI/CIF");
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    // Formatear datos antes de enviar
+    const formattedData = {
+      ...formData,
+      name: formatName(formData.name),
+      city: formData.city ? formatName(formData.city) : "",
+      dni_cif: formData.dni_cif ? formData.dni_cif.toUpperCase() : "",
+      email: formData.email ? formData.email.toLowerCase() : ""
+    };
+
     if (editingCustomer) {
-      updateMutation.mutate({ id: editingCustomer.id, data: formData });
+      updateMutation.mutate({ id: editingCustomer.id, data: formattedData });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate(formattedData);
     }
   };
 
@@ -125,11 +238,12 @@ export default function Customers() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="name">Nombre *</Label>
+                    <Label htmlFor="name">Nombre Completo *</Label>
                     <Input
                       id="name"
                       value={formData.name}
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      placeholder="Juan Pérez García"
                       required
                     />
                   </div>
@@ -140,7 +254,9 @@ export default function Customers() {
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      placeholder="juan@ejemplo.com"
                     />
+                    <p className="text-xs text-slate-500">Debe ser único en el sistema</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Teléfono</Label>
@@ -148,7 +264,9 @@ export default function Customers() {
                       id="phone"
                       value={formData.phone}
                       onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      placeholder="+34 600 123 456"
                     />
+                    <p className="text-xs text-slate-500">Formato español (+34)</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="customer_type">Tipo de Cliente</Label>
@@ -163,12 +281,15 @@ export default function Customers() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="dni_cif">DNI/CIF</Label>
+                    <Label htmlFor="dni_cif">DNI/NIE/CIF</Label>
                     <Input
                       id="dni_cif"
                       value={formData.dni_cif}
-                      onChange={(e) => setFormData({...formData, dni_cif: e.target.value})}
+                      onChange={(e) => setFormData({...formData, dni_cif: e.target.value.toUpperCase()})}
+                      placeholder="12345678A"
+                      maxLength={9}
                     />
+                    <p className="text-xs text-slate-500">Formato: 12345678A o B12345678</p>
                   </div>
                   <div className="space-y-2 md:col-span-2">
                     <Label htmlFor="address">Dirección</Label>
@@ -176,6 +297,7 @@ export default function Customers() {
                       id="address"
                       value={formData.address}
                       onChange={(e) => setFormData({...formData, address: e.target.value})}
+                      placeholder="Calle Mayor 123"
                     />
                   </div>
                   <div className="space-y-2">
@@ -184,6 +306,7 @@ export default function Customers() {
                       id="city"
                       value={formData.city}
                       onChange={(e) => setFormData({...formData, city: e.target.value})}
+                      placeholder="Madrid"
                     />
                   </div>
                   <div className="space-y-2">
@@ -192,6 +315,8 @@ export default function Customers() {
                       id="postal_code"
                       value={formData.postal_code}
                       onChange={(e) => setFormData({...formData, postal_code: e.target.value})}
+                      placeholder="28001"
+                      maxLength={5}
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
@@ -200,6 +325,7 @@ export default function Customers() {
                       id="notes"
                       value={formData.notes}
                       onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                      placeholder="Información adicional del cliente"
                     />
                   </div>
                 </div>

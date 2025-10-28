@@ -1,8 +1,7 @@
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { LayoutDashboard, ShoppingCart, Package, Users, FileText, Settings, Store, TrendingUp, Globe } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, Users, FileText, Settings, Store, TrendingUp, Globe, Info } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -123,6 +122,24 @@ export default function Layout({ children, currentPageName }) {
                       </SidebarMenuItem>
                     );
                   })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 mb-2">
+                Ayuda
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild className="text-slate-300 hover:bg-white/10 hover:text-white rounded-lg">
+                      <Link to={createPageUrl("eCommerceInfo")} className="flex items-center gap-3 px-3 py-2.5">
+                        <Info className="w-5 h-5" />
+                        <span className="font-medium">¿Qué es eCommerce?</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>

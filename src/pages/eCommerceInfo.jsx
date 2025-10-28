@@ -1,6 +1,7 @@
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Globe, ShoppingCart, Package, TrendingUp, Check, ArrowRight, Code, Zap } from "lucide-react";
+import { Globe, ShoppingCart, Package, TrendingUp, Check, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
@@ -124,132 +125,80 @@ export default function ECommerceInfo() {
           </Card>
         </div>
 
-        {/* Guía de Integración Práctica */}
-        <Card className="shadow-xl border-0 mb-8 border-l-4 border-l-purple-600">
+        {/* Cómo funciona */}
+        <Card className="shadow-xl border-0 mb-8 bg-gradient-to-br from-slate-50 to-blue-50">
           <CardContent className="p-8">
-            <div className="flex items-start gap-4 mb-6">
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <Code className="w-8 h-8 text-purple-600" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">
-                  🔌 Guía de Integración Técnica
-                </h2>
-                <p className="text-slate-600">
-                  Conecta tu tienda online con POSCommerce en 3 pasos
-                </p>
-              </div>
-            </div>
-
-            {/* Paso 1 */}
-            <div className="mb-8 bg-blue-50 p-6 rounded-lg">
-              <h3 className="font-bold text-xl mb-4 text-blue-900 flex items-center gap-2">
-                <span className="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
-                Opción A: Plugin para WooCommerce/PrestaShop
-              </h3>
-              <p className="text-slate-700 mb-4">
-                Desarrolla un plugin simple que sincronice los productos automáticamente:
-              </p>
-              <div className="bg-white rounded-lg p-4 font-mono text-sm overflow-x-auto border">
-                <pre className="text-slate-800">{`// En tu plugin de WooCommerce
-function sync_products_from_poscommerce() {
-  $api_url = 'https://tuapp.base44.com/api/products';
-  $response = wp_remote_get($api_url);
-  $products = json_decode($response['body']);
-  
-  foreach ($products as $product) {
-    if ($product->show_in_ecommerce) {
-      // Crear o actualizar producto en WooCommerce
-      wc_create_or_update_product($product);
-    }
-  }
-}
-
-// Ejecutar cada hora
-add_action('hourly_sync', 'sync_products_from_poscommerce');`}</pre>
-              </div>
-              <p className="text-xs text-slate-600 mt-3">
-                💡 <strong>Tip:</strong> Usa WordPress Cron Jobs para sincronizar automáticamente cada hora
-              </p>
-            </div>
-
-            {/* Paso 2 */}
-            <div className="mb-8 bg-green-50 p-6 rounded-lg">
-              <h3 className="font-bold text-xl mb-4 text-green-900 flex items-center gap-2">
-                <span className="bg-green-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">2</span>
-                Opción B: Tienda Online desde Cero
-              </h3>
-              <p className="text-slate-700 mb-4">
-                Crea tu propia web con React/Vue que muestre productos desde POSCommerce:
-              </p>
-              <div className="bg-white rounded-lg p-4 font-mono text-sm overflow-x-auto border mb-4">
-                <pre className="text-slate-800">{`// Ejemplo con React
-import { useState, useEffect } from 'react';
-
-function ProductCatalog() {
-  const [products, setProducts] = useState([]);
-  
-  useEffect(() => {
-    fetch('https://tuapp.base44.com/api/products?show_in_ecommerce=true')
-      .then(res => res.json())
-      .then(data => setProducts(data));
-  }, []);
-  
-  return (
-    <div className="product-grid">
-      {products.map(product => (
-        <ProductCard 
-          key={product.id}
-          product={product}
-          onAddToCart={handleAddToCart}
-        />
-      ))}
-    </div>
-  );
-}`}</pre>
-              </div>
-              <div className="bg-white rounded-lg p-4 font-mono text-sm overflow-x-auto border">
-                <pre className="text-slate-800">{`// Procesar venta cuando el cliente compra
-function handleCheckout(cart, customer) {
-  fetch('https://tuapp.base44.com/api/sales', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      channel: 'ecommerce',
-      customer_name: customer.name,
-      customer_email: customer.email,
-      items: cart.items,
-      total: cart.total,
-      payment_method: 'tarjeta'
-    })
-  });
-}`}</pre>
-              </div>
-            </div>
-
-            {/* Paso 3 */}
-            <div className="bg-orange-50 p-6 rounded-lg">
-              <h3 className="font-bold text-xl mb-4 text-orange-900 flex items-center gap-2">
-                <span className="bg-orange-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">3</span>
-                Opción C: Integración con Marketplaces
-              </h3>
-              <p className="text-slate-700 mb-4">
-                Conecta con Amazon, eBay o redes sociales usando la API:
-              </p>
-              <div className="space-y-3">
-                <div className="bg-white p-4 rounded-lg border">
-                  <h4 className="font-semibold mb-2">Instagram/Facebook Shopping</h4>
-                  <p className="text-sm text-slate-700">
-                    1. Exporta tu catálogo de POSCommerce a un feed XML/JSON<br/>
-                    2. Conecta el feed con Facebook Catalog Manager<br/>
-                    3. Las ventas se sincronizan automáticamente vía webhooks
+            <h2 className="text-2xl font-bold mb-6 text-slate-900 flex items-center gap-2">
+              <Package className="w-7 h-7 text-blue-600" />
+              ¿Cómo usar el eCommerce en tu aplicación?
+            </h2>
+            
+            <div className="space-y-6">
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+                  1
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg mb-2">Marca tus productos para venta online</h3>
+                  <p className="text-slate-700">
+                    En la sección de <strong>Productos</strong>, activa la opción "🌐 Mostrar en eCommerce" 
+                    para cada producto que quieras vender online. Asegúrate de añadir fotos y descripciones atractivas.
                   </p>
                 </div>
-                <div className="bg-white p-4 rounded-lg border">
-                  <h4 className="font-semibold mb-2">Amazon Marketplace</h4>
-                  <p className="text-sm text-slate-700">
-                    Usa Amazon MWS API para subir productos y recibir pedidos.<br/>
-                    POSCommerce actualiza el stock automáticamente en Amazon cuando vendes en tienda física.
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+                  2
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg mb-2">Sincronización automática de stock</h3>
+                  <p className="text-slate-700">
+                    Cuando vendas un producto en el POS (tienda física), el stock se actualiza automáticamente 
+                    en el eCommerce. Lo mismo ocurre con las ventas online: el stock se sincroniza en tiempo real.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+                  3
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg mb-2">Integración con plataformas</h3>
+                  <p className="text-slate-700 mb-3">
+                    Puedes integrar tu catálogo con plataformas como <strong>WooCommerce</strong>, 
+                    <strong>PrestaShop</strong> o crear tu propia tienda online. 
+                    Todas las ventas online se registran automáticamente con canal "🌐 Online".
+                  </p>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-semibold mb-2 text-blue-900">📚 Guía de Integración</h4>
+                    <p className="text-sm text-blue-800 mb-3">
+                      Para conectar tu tienda online con este sistema, puedes usar nuestra API REST:
+                    </p>
+                    <ul className="text-sm text-blue-900 space-y-2 ml-4">
+                      <li>• <strong>Obtener productos:</strong> GET /api/products?show_in_ecommerce=true</li>
+                      <li>• <strong>Crear venta online:</strong> POST /api/sales (con channel: "ecommerce")</li>
+                      <li>• <strong>Actualizar stock:</strong> PUT /api/products/:id</li>
+                      <li>• <strong>Webhooks:</strong> Configura webhooks para sincronización en tiempo real</li>
+                    </ul>
+                    <p className="text-xs text-blue-700 mt-3">
+                      💡 <strong>Consejo:</strong> Si usas WooCommerce o PrestaShop, puedes crear un plugin personalizado 
+                      que consuma esta API. Si necesitas ayuda con la integración, contacta con soporte técnico.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+                  4
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg mb-2">Gestión unificada</h3>
+                  <p className="text-slate-700">
+                    Desde el Dashboard puedes ver todas tus ventas (físicas y online), gestionar productos, 
+                    clientes y generar facturas que cumplen con la normativa española (AEAT, IVA, TicketBAI).
                   </p>
                 </div>
               </div>
@@ -257,25 +206,76 @@ function handleCheckout(cart, customer) {
           </CardContent>
         </Card>
 
-        {/* Soporte Técnico */}
-        <Card className="shadow-xl border-0 mb-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <Zap className="w-12 h-12 flex-shrink-0" />
-              <div>
-                <h3 className="text-xl font-bold mb-2">¿Necesitas ayuda con la integración?</h3>
-                <p className="mb-4 opacity-90">
-                  Nuestro equipo de soporte puede ayudarte a configurar la integración con tu plataforma de eCommerce.
-                </p>
-                <div className="flex gap-3">
-                  <Button variant="secondary" size="sm">
-                    📧 Contactar Soporte
-                  </Button>
-                  <Button variant="outline" size="sm" className="bg-white/10 hover:bg-white/20 text-white border-white/30">
-                    📚 Ver Documentación API
-                  </Button>
-                </div>
-              </div>
+        {/* Opciones de Integración Técnica */}
+        <Card className="shadow-xl border-0 mb-8">
+          <CardContent className="p-8">
+            <h2 className="text-2xl font-bold mb-6 text-slate-900">
+              🔌 Opciones de Integración Técnica
+            </h2>
+            
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card className="border-2 border-purple-200 bg-purple-50">
+                <CardContent className="p-6">
+                  <h3 className="font-bold text-lg mb-3 text-purple-900">1. Plugin WooCommerce/PrestaShop</h3>
+                  <p className="text-sm text-slate-700 mb-4">
+                    Desarrolla un plugin que sincronice tu tienda online con POSCommerce mediante API REST.
+                  </p>
+                  <div className="bg-white rounded-lg p-3 text-xs font-mono">
+                    <code className="text-purple-700">
+                      fetch('/api/products')<br/>
+                      &nbsp;&nbsp;.then(res =&gt; res.json())<br/>
+                      &nbsp;&nbsp;.then(syncProducts)
+                    </code>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-2 border-green-200 bg-green-50">
+                <CardContent className="p-6">
+                  <h3 className="font-bold text-lg mb-3 text-green-900">2. Tienda Online Propia</h3>
+                  <p className="text-sm text-slate-700 mb-4">
+                    Crea tu propia web de eCommerce que consuma la API de POSCommerce para mostrar productos y procesar pedidos.
+                  </p>
+                  <div className="bg-white rounded-lg p-3 text-xs font-mono">
+                    <code className="text-green-700">
+                      POST /api/sales<br/>
+                      &#123; channel: "ecommerce", ... &#125;
+                    </code>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-2 border-orange-200 bg-orange-50">
+                <CardContent className="p-6">
+                  <h3 className="font-bold text-lg mb-3 text-orange-900">3. Marketplace (Amazon, eBay)</h3>
+                  <p className="text-sm text-slate-700 mb-4">
+                    Conecta con marketplaces usando webhooks para actualizar stock y recibir pedidos automáticamente.
+                  </p>
+                  <div className="bg-white rounded-lg p-3 text-xs">
+                    <p className="text-orange-800">
+                      ✓ Sincronización bidireccional<br/>
+                      ✓ Actualización en tiempo real<br/>
+                      ✓ Control total del inventario
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-2 border-blue-200 bg-blue-50">
+                <CardContent className="p-6">
+                  <h3 className="font-bold text-lg mb-3 text-blue-900">4. Redes Sociales</h3>
+                  <p className="text-sm text-slate-700 mb-4">
+                    Vende por Instagram/Facebook Shopping conectando tu catálogo de POSCommerce.
+                  </p>
+                  <div className="bg-white rounded-lg p-3 text-xs">
+                    <p className="text-blue-800">
+                      📱 Instagram Shopping<br/>
+                      🛍️ Facebook Marketplace<br/>
+                      💬 WhatsApp Business Catalog
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </CardContent>
         </Card>

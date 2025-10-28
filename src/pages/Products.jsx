@@ -226,14 +226,9 @@ export default function Products() {
             </h1>
             <p className="text-slate-600 mt-1">Administra tu catálogo de productos</p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={(open) => { 
-            if (!open) {
-              setIsDialogOpen(false); 
-              resetForm(); // Reset form on dialog close
-            }
-          }}>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={resetForm} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg">
+              <Button onClick={() => { resetForm(); setIsDialogOpen(true); }} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg">
                 <Plus className="w-5 h-5 mr-2" />
                 Nuevo Producto
               </Button>

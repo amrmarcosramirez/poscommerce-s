@@ -1,7 +1,8 @@
+
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { LayoutDashboard, ShoppingCart, Package, Users, FileText, Settings, Store, TrendingUp } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, Users, FileText, Settings, Store, TrendingUp, Globe } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -25,9 +26,14 @@ const navigationItems = [
     icon: LayoutDashboard,
   },
   {
-    title: "Punto de Venta",
+    title: "POS - Tienda Física",
     url: createPageUrl("POS"),
     icon: ShoppingCart,
+  },
+  {
+    title: "eCommerce",
+    url: createPageUrl("eCommerce"),
+    icon: Globe,
   },
   {
     title: "Productos",

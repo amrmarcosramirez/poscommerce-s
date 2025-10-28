@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Package, Plus, Search, Edit, Trash2, AlertTriangle } from "lucide-react";
+import { Package, Plus, Search, Edit, Trash2, AlertTriangle, Upload, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 
 const CATEGORIES = ["Electrónica", "Ropa", "Alimentos", "Hogar", "Belleza", "Deportes", "Juguetes", "Libros", "Otros"];
@@ -20,6 +20,8 @@ export default function Products() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [storeFilter, setStoreFilter] = useState("all");
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     sku: "",
@@ -31,6 +33,8 @@ export default function Products() {
     stock: 0,
     min_stock: 5,
     barcode: "",
+    image_url: "",
+    store_id: "",
     show_in_ecommerce: false,
     is_active: true
   });
@@ -38,6 +42,11 @@ export default function Products() {
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['products'],
     queryFn: () => base44.entities.Product.list('-created_date'),
+  });
+
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list(),
   });
 
   const createMutation = useMutation({
@@ -68,11 +77,31 @@ export default function Products() {
     },
   });
 
-  const filteredProducts = products.filter(p =>
-    p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.category?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setFormData({ ...formData, image_url: file_url });
+      toast.success("Imagen subida correctamente");
+    } catch (error) {
+      toast.error("Error al subir la imagen");
+    }
+    setUploadingImage(false);
+  };
+
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = 
+      p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.category?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStore = storeFilter === "all" || p.store_id === storeFilter || !p.store_id;
+    
+    return matchesSearch && matchesStore;
+  });
 
   const resetForm = () => {
     setFormData({
@@ -86,6 +115,8 @@ export default function Products() {
       stock: 0,
       min_stock: 5,
       barcode: "",
+      image_url: "",
+      store_id: "",
       show_in_ecommerce: false,
       is_active: true
     });
@@ -132,6 +163,54 @@ export default function Products() {
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Imagen del producto */}
+                <div className="space-y-2">
+                  <Label>Imagen del Producto</Label>
+                  <div className="flex items-center gap-4">
+                    {formData.image_url ? (
+                      <div className="relative">
+                        <img 
+                          src={formData.image_url} 
+                          alt="Producto" 
+                          className="w-32 h-32 object-cover rounded-lg border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setFormData({...formData, image_url: ""})}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-32 h-32 border-2 border-dashed rounded-lg flex items-center justify-center bg-slate-50">
+                        <ImageIcon className="w-8 h-8 text-slate-400" />
+                      </div>
+                    )}
+                    <div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                        id="image-upload"
+                      />
+                      <label htmlFor="image-upload">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={uploadingImage}
+                          onClick={() => document.getElementById('image-upload').click()}
+                          className="cursor-pointer"
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          {uploadingImage ? "Subiendo..." : "Subir Imagen"}
+                        </Button>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Nombre *</Label>
@@ -167,6 +246,20 @@ export default function Products() {
                       <SelectContent>
                         {CATEGORIES.map(cat => (
                           <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="store_id">Tienda</Label>
+                    <Select value={formData.store_id || ""} onValueChange={(value) => setFormData({...formData, store_id: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todas las tiendas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={null}>Todas las tiendas</SelectItem>
+                        {stores.map(store => (
+                          <SelectItem key={store.id} value={store.id}>{store.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -242,7 +335,7 @@ export default function Products() {
                         checked={formData.show_in_ecommerce}
                         onChange={(e) => setFormData({...formData, show_in_ecommerce: e.target.checked})}
                       />
-                      Mostrar en eCommerce
+                      🌐 Mostrar en eCommerce
                     </Label>
                   </div>
                   <div className="space-y-2">
@@ -271,8 +364,8 @@ export default function Products() {
 
         <Card className="shadow-lg border-0">
           <CardContent className="p-6">
-            <div className="mb-4">
-              <div className="relative">
+            <div className="mb-4 flex gap-4">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <Input
                   placeholder="Buscar productos por nombre, SKU o categoría..."
@@ -281,6 +374,17 @@ export default function Products() {
                   className="pl-10"
                 />
               </div>
+              <Select value={storeFilter} onValueChange={setStoreFilter}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">🏪 Todas las tiendas</SelectItem>
+                  {stores.map(store => (
+                    <SelectItem key={store.id} value={store.id}>{store.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="overflow-x-auto">
@@ -288,6 +392,7 @@ export default function Products() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Producto</TableHead>
+                    <TableHead>Tienda</TableHead>
                     <TableHead>Categoría</TableHead>
                     <TableHead>Precio</TableHead>
                     <TableHead>Stock</TableHead>
@@ -297,65 +402,84 @@ export default function Products() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredProducts.map((product) => (
-                    <TableRow key={product.id} className="hover:bg-slate-50">
-                      <TableCell>
-                        <div>
-                          <p className="font-medium text-slate-900">{product.name}</p>
-                          {product.sku && <p className="text-sm text-slate-500">SKU: {product.sku}</p>}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{product.category}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-semibold">{product.price?.toFixed(2)}€</p>
-                          <p className="text-xs text-slate-500">+IVA {product.iva_rate}%</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {product.stock <= product.min_stock && (
-                            <AlertTriangle className="w-4 h-4 text-orange-500" />
-                          )}
-                          <span className={product.stock <= product.min_stock ? "text-orange-600 font-semibold" : ""}>
-                            {product.stock}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={product.is_active ? "default" : "secondary"}>
-                          {product.is_active ? "Activo" : "Inactivo"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {product.show_in_ecommerce ? "✅" : "❌"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(product)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              if (confirm("¿Eliminar este producto?")) {
-                                deleteMutation.mutate(product.id);
-                              }
-                            }}
-                          >
-                            <Trash2 className="w-4 h-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {filteredProducts.map((product) => {
+                    const store = stores.find(s => s.id === product.store_id);
+                    return (
+                      <TableRow key={product.id} className="hover:bg-slate-50">
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            {product.image_url ? (
+                              <img 
+                                src={product.image_url} 
+                                alt={product.name}
+                                className="w-12 h-12 object-cover rounded"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 bg-slate-100 rounded flex items-center justify-center">
+                                <Package className="w-6 h-6 text-slate-400" />
+                              </div>
+                            )}
+                            <div>
+                              <p className="font-medium text-slate-900">{product.name}</p>
+                              {product.sku && <p className="text-sm text-slate-500">SKU: {product.sku}</p>}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {store ? store.name : "Todas"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{product.category}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-semibold">{product.price?.toFixed(2)}€</p>
+                            <p className="text-xs text-slate-500">+IVA {product.iva_rate}%</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {product.stock <= product.min_stock && (
+                              <AlertTriangle className="w-4 h-4 text-orange-500" />
+                            )}
+                            <span className={product.stock <= product.min_stock ? "text-orange-600 font-semibold" : ""}>
+                              {product.stock}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={product.is_active ? "default" : "secondary"}>
+                            {product.is_active ? "Activo" : "Inactivo"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {product.show_in_ecommerce ? "✅" : "❌"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(product)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                if (confirm("¿Eliminar este producto?")) {
+                                  deleteMutation.mutate(product.id);
+                                }
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

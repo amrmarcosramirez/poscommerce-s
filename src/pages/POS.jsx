@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, ShoppingCart, Trash2, Plus, Minus, CreditCard, Euro, User, Check } from "lucide-react";
+import { Search, ShoppingCart, Trash2, Plus, Minus, CreditCard, User, Check, Store as StoreIcon, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -17,10 +17,17 @@ export default function POS() {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("efectivo");
   const [discount, setDiscount] = useState(0);
+  const [selectedStore, setSelectedStore] = useState(null);
+
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list(),
+  });
 
   const { data: products = [] } = useQuery({
-    queryKey: ['products'],
+    queryKey: ['products', selectedStore],
     queryFn: () => base44.entities.Product.list(),
+    enabled: !!selectedStore,
   });
 
   const { data: customers = [] } = useQuery({
@@ -28,8 +35,17 @@ export default function POS() {
     queryFn: () => base44.entities.Customer.list(),
   });
 
+  // Seleccionar primera tienda activa por defecto
+  useEffect(() => {
+    if (!selectedStore && stores.length > 0) {
+      const activeStore = stores.find(s => s.is_active);
+      if (activeStore) setSelectedStore(activeStore.id);
+    }
+  }, [stores, selectedStore]);
+
   const createSaleMutation = useMutation({
     mutationFn: async (saleData) => {
+      // Crear venta
       const sale = await base44.entities.Sale.create(saleData);
       
       // Actualizar stock de productos
@@ -50,21 +66,54 @@ export default function POS() {
         });
       }
       
+      // Generar factura automáticamente
+      const store = stores.find(s => s.id === selectedStore);
+      const invoiceNumber = `F-${Date.now()}`;
+      await base44.entities.Invoice.create({
+        invoice_number: invoiceNumber,
+        sale_id: sale.id,
+        customer_id: selectedCustomer?.id || null,
+        customer_name: selectedCustomer?.name || "Cliente general",
+        customer_dni_cif: selectedCustomer?.dni_cif || "",
+        customer_address: selectedCustomer?.address || "",
+        invoice_date: format(new Date(), "yyyy-MM-dd"),
+        store_id: selectedStore,
+        items: saleData.items.map(item => ({
+          description: item.product_name,
+          quantity: item.quantity,
+          price: item.price,
+          iva_rate: item.iva_rate,
+          subtotal: item.subtotal
+        })),
+        base_imponible: saleData.subtotal,
+        total_iva: saleData.total_iva,
+        total: saleData.total,
+        payment_method: saleData.payment_method,
+        status: "emitida"
+      });
+      
       return sale;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
       setCart([]);
       setSelectedCustomer(null);
       setDiscount(0);
-      toast.success("Venta completada exitosamente");
+      toast.success("✅ Venta completada y factura generada");
     },
   });
 
-  const activeProducts = products.filter(p => p.is_active && p.stock > 0);
-  const filteredProducts = activeProducts.filter(p => 
+  // Filtrar productos por tienda seleccionada
+  const storeProducts = products.filter(p => 
+    (!p.store_id || p.store_id === selectedStore) && 
+    p.is_active && 
+    p.stock > 0
+  );
+  
+  const filteredProducts = storeProducts.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.barcode?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -130,6 +179,11 @@ export default function POS() {
   };
 
   const completeSale = async () => {
+    if (!selectedStore) {
+      toast.error("Selecciona una tienda primero");
+      return;
+    }
+    
     if (cart.length === 0) {
       toast.error("El carrito está vacío");
       return;
@@ -140,6 +194,7 @@ export default function POS() {
     
     const saleData = {
       sale_number: saleNumber,
+      store_id: selectedStore,
       customer_id: selectedCustomer?.id || null,
       customer_name: selectedCustomer?.name || "Cliente general",
       sale_date: new Date().toISOString(),
@@ -157,13 +212,60 @@ export default function POS() {
   };
 
   const totals = calculateTotals();
+  const selectedStoreData = stores.find(s => s.id === selectedStore);
+
+  if (!selectedStore) {
+    return (
+      <div className="p-6 lg:p-8 flex items-center justify-center min-h-screen">
+        <Card className="max-w-md shadow-xl">
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="w-16 h-16 mx-auto mb-4 text-orange-500" />
+            <h2 className="text-2xl font-bold mb-2">No hay tiendas disponibles</h2>
+            <p className="text-slate-600 mb-4">Necesitas crear al menos una tienda para usar el POS</p>
+            <Button onClick={() => window.location.href = '/stores'} className="bg-blue-600">
+              Ir a Gestión de Tiendas
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 lg:p-8 bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Punto de Venta</h1>
-          <p className="text-slate-600">Gestiona tus ventas de forma rápida y eficiente</p>
+        <div className="mb-6 flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">🏪 Punto de Venta (POS)</h1>
+            <p className="text-slate-600">Ventas en tienda física</p>
+          </div>
+          
+          {/* Selector de Tienda */}
+          <Card className="min-w-[250px]">
+            <CardContent className="p-4">
+              <label className="text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
+                <StoreIcon className="w-4 h-4" />
+                Tienda Actual
+              </label>
+              <Select value={selectedStore} onValueChange={setSelectedStore}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {stores.filter(s => s.is_active).map(store => (
+                    <SelectItem key={store.id} value={store.id}>
+                      {store.name} - {store.city}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedStoreData && (
+                <p className="text-xs text-slate-500 mt-2">
+                  📍 {selectedStoreData.address}
+                </p>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -189,6 +291,13 @@ export default function POS() {
                       onClick={() => addToCart(product)}
                       className="p-4 border rounded-xl hover:shadow-md hover:border-blue-400 transition-all text-left bg-white"
                     >
+                      {product.image_url && (
+                        <img 
+                          src={product.image_url} 
+                          alt={product.name}
+                          className="w-full h-32 object-cover rounded-lg mb-2"
+                        />
+                      )}
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="font-semibold text-slate-900 line-clamp-2">{product.name}</h3>
                         {product.stock <= product.min_stock && (
@@ -352,7 +461,7 @@ export default function POS() {
                   ) : (
                     <>
                       <Check className="w-5 h-5 mr-2" />
-                      Completar Venta
+                      Completar Venta y Generar Factura
                     </>
                   )}
                 </Button>

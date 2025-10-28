@@ -5,6 +5,7 @@ import Sales from './pages/Sales';
 import Customers from './pages/Customers';
 import Invoices from './pages/Invoices';
 import Stores from './pages/Stores';
+import eCommerce from './pages/eCommerce';
 import Layout from './Layout.jsx';
 
 
@@ -16,6 +17,7 @@ export const PAGES = {
     "Customers": Customers,
     "Invoices": Invoices,
     "Stores": Stores,
+    "eCommerce": eCommerce,
 }
 
 export const pagesConfig = {

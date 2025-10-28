@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -125,19 +124,16 @@ export default function Customers() {
   };
 
   const validateForm = () => {
-    // Validar nombre
     if (!formData.name.trim()) {
       toast.error("El nombre es obligatorio");
       return false;
     }
 
-    // Validar email si existe
     if (formData.email && !isValidEmail(formData.email)) {
       toast.error("Email no válido");
       return false;
     }
 
-    // Validar email único
     if (formData.email) {
       const emailExists = customers.some(c => 
         c.email?.toLowerCase() === formData.email.toLowerCase() && 
@@ -149,13 +145,11 @@ export default function Customers() {
       }
     }
 
-    // Validar teléfono
     if (formData.phone && !isValidPhone(formData.phone)) {
       toast.error("Teléfono no válido. Debe ser un número español");
       return false;
     }
 
-    // Validar teléfono único
     if (formData.phone) {
       const phoneExists = customers.some(c => 
         c.phone === formData.phone && 
@@ -167,7 +161,6 @@ export default function Customers() {
       }
     }
 
-    // Validar DNI/CIF si existe
     if (formData.dni_cif) {
       const upperDniCif = formData.dni_cif.toUpperCase();
       if (!isValidDniCif(upperDniCif)) {
@@ -175,7 +168,6 @@ export default function Customers() {
         return false;
       }
 
-      // Validar DNI/CIF único
       const dniCifExists = customers.some(c => 
         c.dni_cif?.toUpperCase() === upperDniCif && 
         c.id !== editingCustomer?.id
@@ -196,7 +188,6 @@ export default function Customers() {
       return;
     }
 
-    // Formatear datos antes de enviar
     const formattedData = {
       ...formData,
       name: formatName(formData.name),
@@ -223,14 +214,19 @@ export default function Customers() {
             </h1>
             <p className="text-slate-600 mt-1">Administra tu base de clientes</p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={(open) => { if (!open) setIsDialogOpen(false); }}>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => { if (!open && !createMutation.isPending && !updateMutation.isPending) setIsDialogOpen(false); }}>
             <DialogTrigger asChild>
               <Button onClick={resetForm} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg">
                 <Plus className="w-5 h-5 mr-2" />
                 Nuevo Cliente
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onPointerDownOutside={(e) => e.preventDefault()}>
+            <DialogContent 
+              className="max-w-2xl max-h-[90vh] overflow-y-auto" 
+              onPointerDownOutside={(e) => e.preventDefault()}
+              onEscapeKeyDown={(e) => e.preventDefault()}
+              onInteractOutside={(e) => e.preventDefault()}
+            >
               <DialogHeader>
                 <DialogTitle>
                   {editingCustomer ? "Editar Cliente" : "Nuevo Cliente"}

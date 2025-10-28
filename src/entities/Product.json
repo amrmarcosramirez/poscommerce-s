@@ -1,0 +1,89 @@
+{
+  "name": "Product",
+  "type": "object",
+  "properties": {
+    "sku": {
+      "type": "string",
+      "description": "C\u00f3digo SKU \u00fanico del producto"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nombre del producto"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descripci\u00f3n del producto"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Electr\u00f3nica",
+        "Ropa",
+        "Alimentos",
+        "Hogar",
+        "Belleza",
+        "Deportes",
+        "Juguetes",
+        "Libros",
+        "Otros"
+      ],
+      "description": "Categor\u00eda del producto"
+    },
+    "price": {
+      "type": "number",
+      "description": "Precio de venta (sin IVA)"
+    },
+    "cost": {
+      "type": "number",
+      "description": "Coste del producto"
+    },
+    "iva_rate": {
+      "type": "number",
+      "enum": [
+        0,
+        4,
+        10,
+        21
+      ],
+      "default": 21,
+      "description": "Tipo de IVA aplicable (%)"
+    },
+    "stock": {
+      "type": "number",
+      "default": 0,
+      "description": "Stock disponible"
+    },
+    "min_stock": {
+      "type": "number",
+      "default": 5,
+      "description": "Stock m\u00ednimo de alerta"
+    },
+    "barcode": {
+      "type": "string",
+      "description": "C\u00f3digo de barras"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "URL de la imagen del producto"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID de la tienda"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si el producto est\u00e1 activo"
+    },
+    "show_in_ecommerce": {
+      "type": "boolean",
+      "default": false,
+      "description": "Mostrar en tienda online"
+    }
+  },
+  "required": [
+    "name",
+    "price",
+    "iva_rate"
+  ]
+}

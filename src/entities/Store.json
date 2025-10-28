@@ -1,0 +1,42 @@
+{
+  "name": "Store",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre de la tienda/sucursal"
+    },
+    "address": {
+      "type": "string",
+      "description": "Direcci\u00f3n f\u00edsica"
+    },
+    "city": {
+      "type": "string",
+      "description": "Ciudad"
+    },
+    "postal_code": {
+      "type": "string",
+      "description": "C\u00f3digo postal"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Tel\u00e9fono de contacto"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email de la tienda"
+    },
+    "cif": {
+      "type": "string",
+      "description": "CIF de la empresa"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si la tienda est\u00e1 activa"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "name": "Customer",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre del cliente"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email del cliente"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Tel\u00e9fono"
+    },
+    "dni_cif": {
+      "type": "string",
+      "description": "DNI o CIF del cliente"
+    },
+    "address": {
+      "type": "string",
+      "description": "Direcci\u00f3n"
+    },
+    "city": {
+      "type": "string",
+      "description": "Ciudad"
+    },
+    "postal_code": {
+      "type": "string",
+      "description": "C\u00f3digo postal"
+    },
+    "customer_type": {
+      "type": "string",
+      "enum": [
+        "particular",
+        "empresa"
+      ],
+      "default": "particular",
+      "description": "Tipo de cliente"
+    },
+    "total_purchases": {
+      "type": "number",
+      "default": 0,
+      "description": "Total de compras realizadas"
+    },
+    "purchase_count": {
+      "type": "number",
+      "default": 0,
+      "description": "N\u00famero de compras"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notas sobre el cliente"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

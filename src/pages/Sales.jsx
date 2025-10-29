@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -16,6 +17,7 @@ export default function Sales() {
   const [selectedSale, setSelectedSale] = useState(null);
   const [storeFilter, setStoreFilter] = useState("all");
   const [channelFilter, setChannelFilter] = useState("all");
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const { data: sales = [], isLoading } = useQuery({
     queryKey: ['sales'],
@@ -140,16 +142,19 @@ export default function Sales() {
                           {sale.total?.toFixed(2)}€
                         </TableCell>
                         <TableCell>
-                          <Dialog>
+                          <Dialog open={dialogOpen && selectedSale?.id === sale.id} onOpenChange={(open) => setDialogOpen(open)}>
                             <DialogTrigger>
                               <button
-                                onClick={() => setSelectedSale(sale)}
+                                onClick={() => {
+                                  setSelectedSale(sale);
+                                  setDialogOpen(true);
+                                }}
                                 className="text-blue-600 hover:text-blue-800"
                               >
                                 <Eye className="w-5 h-5" />
                               </button>
                             </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
+                            <DialogContent className="max-w-2xl" onPointerDownOutside={(e) => e.preventDefault()}>
                               <DialogHeader>
                                 <DialogTitle>Detalles de Venta - {selectedSale?.sale_number}</DialogTitle>
                               </DialogHeader>

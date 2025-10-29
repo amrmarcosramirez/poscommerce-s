@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { FileText, Search, Download } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { toast } from "sonner";
 
 export default function Invoices() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -15,6 +16,11 @@ export default function Invoices() {
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => base44.entities.Invoice.list('-invoice_date'),
+  });
+
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list(),
   });
 
   const filteredInvoices = invoices.filter(i =>
@@ -27,6 +33,104 @@ export default function Invoices() {
     pagada: "bg-green-100 text-green-800",
     pendiente: "bg-yellow-100 text-yellow-800",
     cancelada: "bg-red-100 text-red-800"
+  };
+
+  const downloadInvoicePDF = (invoice) => {
+    try {
+      const store = stores.find(s => s.id === invoice.store_id);
+      
+      // Crear contenido HTML para el PDF
+      const invoiceHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: Arial, sans-serif; padding: 40px; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+            .company-info { margin-bottom: 20px; }
+            .invoice-details { margin: 20px 0; }
+            .items-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            .items-table th, .items-table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+            .items-table th { background-color: #f4f4f4; }
+            .totals { margin-top: 20px; text-align: right; }
+            .total-row { font-weight: bold; font-size: 18px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>FACTURA</h1>
+            <p><strong>${invoice.invoice_number}</strong></p>
+          </div>
+          
+          <div class="company-info">
+            <h3>${store?.name || 'Mi Empresa'}</h3>
+            <p>${store?.address || ''}</p>
+            <p>${store?.city || ''} - ${store?.postal_code || ''}</p>
+            <p>CIF: ${store?.cif || ''}</p>
+            <p>Tel: ${store?.phone || ''}</p>
+          </div>
+          
+          <div class="invoice-details">
+            <p><strong>Fecha:</strong> ${format(new Date(invoice.invoice_date), "dd/MM/yyyy", { locale: es })}</p>
+            <p><strong>Cliente:</strong> ${invoice.customer_name}</p>
+            ${invoice.customer_dni_cif ? `<p><strong>DNI/CIF:</strong> ${invoice.customer_dni_cif}</p>` : ''}
+            ${invoice.customer_address ? `<p><strong>Dirección:</strong> ${invoice.customer_address}</p>` : ''}
+          </div>
+          
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Descripción</th>
+                <th>Cantidad</th>
+                <th>Precio Unit.</th>
+                <th>IVA</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${invoice.items?.map(item => `
+                <tr>
+                  <td>${item.description}</td>
+                  <td>${item.quantity}</td>
+                  <td>${item.price?.toFixed(2)}€</td>
+                  <td>${item.iva_rate}%</td>
+                  <td>${item.subtotal?.toFixed(2)}€</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          
+          <div class="totals">
+            <p>Base Imponible: ${invoice.base_imponible?.toFixed(2)}€</p>
+            <p>IVA: ${invoice.total_iva?.toFixed(2)}€</p>
+            <p class="total-row">TOTAL: ${invoice.total?.toFixed(2)}€</p>
+            <p style="margin-top: 10px;">Método de pago: ${invoice.payment_method}</p>
+          </div>
+          
+          <div style="margin-top: 40px; text-align: center; font-size: 12px; color: #666;">
+            <p>Gracias por su confianza</p>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      // Crear un blob y descargarlo
+      const blob = new Blob([invoiceHTML], { type: 'text/html' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Factura_${invoice.invoice_number}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success("Factura descargada correctamente");
+    } catch (error) {
+      toast.error("Error al descargar la factura");
+      console.error(error);
+    }
   };
 
   return (
@@ -101,7 +205,10 @@ export default function Invoices() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <button className="text-blue-600 hover:text-blue-800">
+                          <button 
+                            onClick={() => downloadInvoicePDF(invoice)}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
                             <Download className="w-5 h-5" />
                           </button>
                         </TableCell>

@@ -22,6 +22,7 @@ export default function Products() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [storeFilter, setStoreFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all"); // New state variable
   const [uploadingImage, setUploadingImage] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -158,8 +159,9 @@ export default function Products() {
       p.category?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStore = storeFilter === "all" || p.store_id === storeFilter || !p.store_id;
+    const matchesCategory = categoryFilter === "all" || p.category === categoryFilter; // New filter logic
     
-    return matchesSearch && matchesStore;
+    return matchesSearch && matchesStore && matchesCategory; // Apply new filter
   });
 
   const resetForm = () => {
@@ -598,7 +600,7 @@ export default function Products() {
 
         <Card className="shadow-lg border-0">
           <CardContent className="p-6">
-            <div className="mb-4 flex gap-4">
+            <div className="mb-4 flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <Input
@@ -609,13 +611,25 @@ export default function Products() {
                 />
               </div>
               <Select value={storeFilter} onValueChange={setStoreFilter}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue />
+                <SelectTrigger className="w-full sm:w-[200px]">
+                  <SelectValue placeholder="Tienda" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">🏪 Todas las tiendas</SelectItem>
                   {stores.map(store => (
                     <SelectItem key={store.id} value={store.id}>{store.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {/* New Category Filter */}
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-full sm:w-[200px]">
+                  <SelectValue placeholder="Categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">🏷️ Todas las categorías</SelectItem>
+                  {CATEGORIES.map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

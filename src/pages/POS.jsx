@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -10,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, ShoppingCart, Trash2, Plus, Minus, CreditCard, User, Check, Store as StoreIcon, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import TicketModal from "../components/pos/TicketModal"; // Added import
+import TicketModal from "../components/pos/TicketModal";
 
 export default function POS() {
   const queryClient = useQueryClient();
@@ -20,8 +19,8 @@ export default function POS() {
   const [paymentMethod, setPaymentMethod] = useState("efectivo");
   const [discount, setDiscount] = useState(0);
   const [selectedStore, setSelectedStore] = useState(null);
-  const [completedSale, setCompletedSale] = useState(null); // Added state
-  const [showTicket, setShowTicket] = useState(false); // Added state
+  const [completedSale, setCompletedSale] = useState(null);
+  const [showTicket, setShowTicket] = useState(false);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -49,28 +48,37 @@ export default function POS() {
 
   const createSaleMutation = useMutation({
     mutationFn: async (saleData) => {
-      // Crear venta
       const sale = await base44.entities.Sale.create(saleData);
-
-      // Actualizar stock de productos
+      
+      // Actualizar stock de productos o variantes
       for (const item of saleData.items) {
         const product = products.find(p => p.id === item.product_id);
         if (product) {
-          await base44.entities.Product.update(product.id, {
-            stock: product.stock - item.quantity
-          });
+          if (item.variant_index !== undefined && product.has_variants) {
+            // Actualizar stock de variante
+            const newVariants = [...product.variants];
+            newVariants[item.variant_index].stock -= item.quantity;
+            const totalStock = newVariants.reduce((sum, v) => sum + v.stock, 0);
+            await base44.entities.Product.update(product.id, {
+              variants: newVariants,
+              stock: totalStock
+            });
+          } else {
+            // Actualizar stock normal
+            await base44.entities.Product.update(product.id, {
+              stock: product.stock - item.quantity
+            });
+          }
         }
       }
-
-      // Actualizar datos del cliente si existe
+      
       if (selectedCustomer) {
         await base44.entities.Customer.update(selectedCustomer.id, {
           total_purchases: (selectedCustomer.total_purchases || 0) + saleData.total,
           purchase_count: (selectedCustomer.purchase_count || 0) + 1
         });
       }
-
-      // Generar factura automáticamente
+      
       const store = stores.find(s => s.id === selectedStore);
       const invoiceNumber = `F-${Date.now()}`;
       await base44.entities.Invoice.create({
@@ -95,73 +103,93 @@ export default function POS() {
         payment_method: saleData.payment_method,
         status: "emitida"
       });
-
+      
       return sale;
     },
-    onSuccess: (sale) => { // Modified onSuccess to receive sale
+    onSuccess: (sale) => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
-
-      // Mostrar ticket
+      
       setCompletedSale(sale);
       setShowTicket(true);
-
-      // Limpiar formulario
+      
       setCart([]);
       setSelectedCustomer(null);
       setDiscount(0);
-
+      
       toast.success("✅ Venta completada y factura generada");
     },
   });
 
-  // Filtrar productos por tienda seleccionada
-  const storeProducts = products.filter(p =>
-    (!p.store_id || p.store_id === selectedStore) &&
-    p.is_active &&
+  // Expandir productos con variantes
+  const expandedProducts = products.flatMap(product => {
+    if (!product.has_variants || !product.variants || product.variants.length === 0) {
+      return [product];
+    }
+    return product.variants.map((variant, index) => ({
+      ...product,
+      id: `${product.id}_variant_${index}`,
+      original_id: product.id,
+      variant_index: index,
+      name: `${product.name} - ${variant.attributes.color || ''} ${variant.attributes.talla || ''}`.trim(),
+      price: product.price + (variant.price_adjustment || 0),
+      stock: variant.stock,
+      barcode: variant.barcode || product.barcode,
+      sku: variant.sku_variant || product.sku,
+      image_url: variant.image_url || product.image_url,
+      is_variant: true
+    }));
+  });
+
+  const storeProducts = expandedProducts.filter(p => 
+    (!p.store_id || p.store_id === selectedStore) && 
+    p.is_active && 
     p.stock > 0
   );
-
-  const filteredProducts = storeProducts.filter(p =>
+  
+  const filteredProducts = storeProducts.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.barcode?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const addToCart = (product) => {
-    const existingItem = cart.find(item => item.product_id === product.id);
-
+    const productId = product.is_variant ? product.id : product.id;
+    const existingItem = cart.find(item => item.cart_id === productId);
+    
     if (existingItem) {
       if (existingItem.quantity >= product.stock) {
         toast.error("No hay suficiente stock disponible");
         return;
       }
       setCart(cart.map(item =>
-        item.product_id === product.id
+        item.cart_id === productId
           ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.price }
           : item
       ));
     } else {
       setCart([...cart, {
-        product_id: product.id,
+        cart_id: productId,
+        product_id: product.is_variant ? product.original_id : product.id,
+        variant_index: product.variant_index,
         product_name: product.name,
         sku: product.sku,
         quantity: 1,
         price: product.price,
         iva_rate: product.iva_rate,
         discount: 0,
-        subtotal: product.price
+        subtotal: product.price,
+        max_stock: product.stock
       }]);
     }
   };
 
-  const updateQuantity = (productId, delta) => {
-    const product = products.find(p => p.id === productId);
+  const updateQuantity = (cartId, delta) => {
     setCart(cart.map(item => {
-      if (item.product_id === productId) {
-        const newQuantity = Math.max(0, Math.min(product.stock, item.quantity + delta));
+      if (item.cart_id === cartId) {
+        const newQuantity = Math.max(0, Math.min(item.max_stock, item.quantity + delta));
         return {
           ...item,
           quantity: newQuantity,
@@ -172,8 +200,8 @@ export default function POS() {
     }).filter(item => item.quantity > 0));
   };
 
-  const removeFromCart = (productId) => {
-    setCart(cart.filter(item => item.product_id !== productId));
+  const removeFromCart = (cartId) => {
+    setCart(cart.filter(item => item.cart_id !== cartId));
   };
 
   const calculateTotals = () => {
@@ -185,7 +213,7 @@ export default function POS() {
       return sum + (itemAfterDiscount * item.iva_rate / 100);
     }, 0);
     const total = subtotalAfterDiscount + ivaAmount;
-
+    
     return { subtotal, discountAmount, subtotalAfterDiscount, ivaAmount, total };
   };
 
@@ -194,7 +222,7 @@ export default function POS() {
       toast.error("Selecciona una tienda primero");
       return;
     }
-
+    
     if (cart.length === 0) {
       toast.error("El carrito está vacío");
       return;
@@ -202,14 +230,24 @@ export default function POS() {
 
     const totals = calculateTotals();
     const saleNumber = `V-${Date.now()}`;
-
+    
     const saleData = {
       sale_number: saleNumber,
       store_id: selectedStore,
       customer_id: selectedCustomer?.id || null,
       customer_name: selectedCustomer?.name || "Cliente general",
       sale_date: new Date().toISOString(),
-      items: cart,
+      items: cart.map(item => ({
+        product_id: item.product_id,
+        product_name: item.product_name,
+        sku: item.sku,
+        quantity: item.quantity,
+        price: item.price,
+        iva_rate: item.iva_rate,
+        discount: item.discount,
+        subtotal: item.subtotal,
+        variant_index: item.variant_index
+      })),
       subtotal: totals.subtotalAfterDiscount,
       total_iva: totals.ivaAmount,
       discount: discount,
@@ -251,8 +289,7 @@ export default function POS() {
               <h1 className="text-3xl font-bold text-slate-900 mb-2">🏪 Punto de Venta (POS)</h1>
               <p className="text-slate-600">Ventas en tienda física</p>
             </div>
-
-            {/* Selector de Tienda */}
+            
             <Card className="min-w-[250px]">
               <CardContent className="p-4">
                 <label className="text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
@@ -281,7 +318,6 @@ export default function POS() {
           </div>
 
           <div className="grid lg:grid-cols-3 gap-6">
-            {/* Productos */}
             <div className="lg:col-span-2 space-y-4">
               <Card className="shadow-lg border-0">
                 <CardHeader className="border-b">
@@ -304,15 +340,15 @@ export default function POS() {
                         className="p-4 border rounded-xl hover:shadow-md hover:border-blue-400 transition-all text-left bg-white"
                       >
                         {product.image_url && (
-                          <img
-                            src={product.image_url}
+                          <img 
+                            src={product.image_url} 
                             alt={product.name}
                             className="w-full h-32 object-cover rounded-lg mb-2"
                           />
                         )}
                         <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-semibold text-slate-900 line-clamp-2">{product.name}</h3>
-                          {product.stock <= product.min_stock && (
+                          <h3 className="font-semibold text-slate-900 line-clamp-2 text-sm">{product.name}</h3>
+                          {product.stock <= (product.min_stock || 5) && (
                             <Badge variant="destructive" className="text-xs">Bajo</Badge>
                           )}
                         </div>
@@ -326,7 +362,6 @@ export default function POS() {
               </Card>
             </div>
 
-            {/* Carrito */}
             <div className="space-y-4">
               <Card className="shadow-lg border-0">
                 <CardHeader className="border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
@@ -336,7 +371,6 @@ export default function POS() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4">
-                  {/* Cliente */}
                   <div className="mb-4">
                     <label className="text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
                       <User className="w-4 h-4" />
@@ -366,7 +400,6 @@ export default function POS() {
                     </Select>
                   </div>
 
-                  {/* Items del carrito */}
                   <div className="space-y-2 max-h-[300px] overflow-y-auto mb-4">
                     {cart.length === 0 ? (
                       <div className="text-center py-8 text-slate-500">
@@ -375,11 +408,11 @@ export default function POS() {
                       </div>
                     ) : (
                       cart.map((item) => (
-                        <div key={item.product_id} className="p-3 bg-slate-50 rounded-lg">
+                        <div key={item.cart_id} className="p-3 bg-slate-50 rounded-lg">
                           <div className="flex justify-between items-start mb-2">
                             <h4 className="font-medium text-sm">{item.product_name}</h4>
                             <button
-                              onClick={() => removeFromCart(item.product_id)}
+                              onClick={() => removeFromCart(item.cart_id)}
                               className="text-red-500 hover:text-red-700"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -388,14 +421,14 @@ export default function POS() {
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <button
-                                onClick={() => updateQuantity(item.product_id, -1)}
+                                onClick={() => updateQuantity(item.cart_id, -1)}
                                 className="w-6 h-6 rounded bg-white border flex items-center justify-center"
                               >
                                 <Minus className="w-3 h-3" />
                               </button>
                               <span className="font-semibold">{item.quantity}</span>
                               <button
-                                onClick={() => updateQuantity(item.product_id, 1)}
+                                onClick={() => updateQuantity(item.cart_id, 1)}
                                 className="w-6 h-6 rounded bg-white border flex items-center justify-center"
                               >
                                 <Plus className="w-3 h-3" />
@@ -408,7 +441,6 @@ export default function POS() {
                     )}
                   </div>
 
-                  {/* Descuento */}
                   <div className="mb-4">
                     <label className="text-sm font-medium text-slate-700 mb-2 block">
                       Descuento (%)
@@ -422,7 +454,6 @@ export default function POS() {
                     />
                   </div>
 
-                  {/* Método de pago */}
                   <div className="mb-4">
                     <label className="text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
                       <CreditCard className="w-4 h-4" />
@@ -441,7 +472,6 @@ export default function POS() {
                     </Select>
                   </div>
 
-                  {/* Totales */}
                   <div className="border-t pt-4 space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-600">Subtotal:</span>
@@ -483,9 +513,8 @@ export default function POS() {
           </div>
         </div>
       </div>
-
-      {/* Modal de Ticket */}
-      {showTicket && completedSale && selectedStoreData && ( // Added conditions for completedSale and selectedStoreData
+      
+      {showTicket && (
         <TicketModal
           sale={completedSale}
           store={selectedStoreData}

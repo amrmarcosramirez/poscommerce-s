@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -21,20 +22,42 @@ export default function ECommerce() {
     queryFn: () => base44.entities.Sale.filter({ channel: 'ecommerce' }, '-sale_date', 50),
   });
 
-  // Solo productos activos y marcados para eCommerce
-  const ecommerceProducts = products.filter(p => 
-    p.is_active && 
-    p.show_in_ecommerce && 
-    p.stock > 0
-  );
+  // Expandir productos con variantes para eCommerce
+  const expandedProducts = products.flatMap(product => {
+    // Only consider active products marked for eCommerce
+    if (!product.is_active || !product.show_in_ecommerce) {
+      return [];
+    }
+    
+    // If no variants or has_variants is false, treat as a simple product
+    if (!product.has_variants || !product.variants || product.variants.length === 0) {
+      return product.stock > 0 ? [{ ...product, is_variant: false }] : []; // Only include if main product stock > 0
+    }
+    
+    // If has variants, expand them into individual product entries
+    return product.variants
+      .filter(variant => variant.stock > 0) // Only include variants that have stock
+      .map((variant, index) => {
+        const variantName = `${product.name || ''} - ${variant.attributes?.color || ''} ${variant.attributes?.talla || ''}`.trim();
+        return {
+          ...product, // Copy original product properties
+          id: `${product.id}_variant_${variant.id || index}`, // Unique ID for variant, prefer variant.id if available
+          name: variantName === ' -' ? product.name : variantName, // Fallback to product name if variant attributes are empty
+          price: (product.price || 0) + (variant.price_adjustment || 0), // Adjust price for variant
+          stock: variant.stock, // Use variant's stock
+          image_url: variant.image_url || product.image_url, // Prefer variant image, fallback to product image
+          is_variant: true // Mark this as a variant entry
+        };
+      });
+  });
 
-  const filteredProducts = ecommerceProducts.filter(p => {
+  const filteredProducts = expandedProducts.filter(p => {
     const matchesSearch = p.name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === "all" || p.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
 
-  const categories = [...new Set(ecommerceProducts.map(p => p.category))];
+  const categories = [...new Set(expandedProducts.map(p => p.category))].filter(Boolean); // Filter out any undefined/null categories
   
   const totalOnlineSales = sales.reduce((sum, sale) => sum + (sale.total || 0), 0);
 
@@ -56,7 +79,7 @@ export default function ECommerce() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-slate-600 mb-1">Productos en Línea</p>
-                  <p className="text-3xl font-bold text-purple-600">{ecommerceProducts.length}</p>
+                  <p className="text-3xl font-bold text-purple-600">{expandedProducts.length}</p>
                 </div>
                 <Package className="w-12 h-12 text-purple-200" />
               </div>
@@ -91,7 +114,12 @@ export default function ECommerce() {
         {/* Catálogo Online */}
         <Card className="shadow-lg border-0">
           <CardContent className="p-6">
-            <h2 className="text-xl font-bold mb-4">Catálogo Online</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Catálogo Online</h2>
+              <Badge variant="outline" className="text-lg">
+                {filteredProducts.length} productos disponibles
+              </Badge>
+            </div>
             
             <div className="mb-4 flex gap-4">
               <div className="relative flex-1">
@@ -154,11 +182,11 @@ export default function ECommerce() {
                       <div className="flex justify-between items-center">
                         <div>
                           <p className="text-2xl font-bold text-purple-600">
-                            {(product.price * (1 + product.iva_rate / 100)).toFixed(2)}€
+                            {(product.price * (1 + (product.iva_rate || 0) / 100)).toFixed(2)}€
                           </p>
                           <p className="text-xs text-slate-500">IVA incluido</p>
                         </div>
-                        <Badge variant={product.stock > product.min_stock ? "default" : "destructive"}>
+                        <Badge variant={product.stock > (product.min_stock || 5) ? "default" : "destructive"}>
                           Stock: {product.stock}
                         </Badge>
                       </div>
@@ -173,10 +201,13 @@ export default function ECommerce() {
         {/* Información */}
         <div className="mt-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
           <h3 className="font-semibold text-purple-900 mb-2">🌐 Integración eCommerce</h3>
-          <p className="text-sm text-purple-800">
+          <p className="text-sm text-purple-800 mb-2">
             Esta vista muestra los productos disponibles para tu tienda online. 
             Puedes integrar con WooCommerce, PrestaShop o usar tu propia tienda online.
-            Los productos marcados como "Mostrar en eCommerce" aparecerán automáticamente.
+          </p>
+          <p className="text-sm text-purple-800">
+            <strong>💡 ¿No tienes tienda online?</strong> Esta sección puede funcionar como tu catálogo web. 
+            Comparte el enlace con tus clientes para que vean tus productos disponibles.
           </p>
         </div>
       </div>

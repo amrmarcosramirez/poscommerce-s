@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -255,13 +256,16 @@ export default function ECommerce() {
             <p className="text-slate-600 mt-1">Compra tus productos online</p>
           </div>
 
-          {/* Carrito flotante */}
-          {cart.length > 0 && (
-            <Button onClick={handleCheckout} className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-lg">
-              <ShoppingCart className="w-5 h-5 mr-2" />
-              Carrito ({cart.length})
-            </Button>
-          )}
+          {/* Carrito siempre visible */}
+          <Button onClick={handleCheckout} className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-lg relative">
+            <ShoppingCart className="w-5 h-5 mr-2" />
+            Carrito 
+            {cart.length > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold">
+                {cart.length}
+              </span>
+            )}
+          </Button>
         </div>
 
         {/* Estadísticas */}

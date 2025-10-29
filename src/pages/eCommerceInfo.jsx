@@ -1,7 +1,6 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Globe, ShoppingCart, Package, TrendingUp, Check, ArrowRight } from "lucide-react";
+import { Globe, ShoppingCart, Package, TrendingUp, Check, ArrowRight, Store, Link as LinkIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,6 @@ export default function ECommerceInfo() {
   return (
     <div className="p-6 lg:p-8">
       <div className="max-w-5xl mx-auto">
-        {/* Header */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl mb-4 shadow-xl">
             <Globe className="w-10 h-10 text-white" />
@@ -106,7 +104,7 @@ export default function ECommerceInfo() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-purple-600 font-bold">•</span>
-                  <span>Pago online (tarjeta, PayPal, Bizum)</span>
+                  <span>Carrito de compras online</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-purple-600 font-bold">•</span>
@@ -118,164 +116,181 @@ export default function ECommerceInfo() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-purple-600 font-bold">•</span>
-                  <span>Integración con WooCommerce/PrestaShop</span>
+                  <span>Stock sincronizado en tiempo real</span>
                 </li>
               </ul>
             </CardContent>
           </Card>
         </div>
 
-        {/* Cómo funciona */}
-        <Card className="shadow-xl border-0 mb-8 bg-gradient-to-br from-slate-50 to-blue-50">
+        {/* NUEVA SECCIÓN: Cómo usar eCommerce como Tienda Online Propia */}
+        <Card className="shadow-xl border-0 mb-8 bg-gradient-to-br from-purple-50 to-blue-50">
           <CardContent className="p-8">
             <h2 className="text-2xl font-bold mb-6 text-slate-900 flex items-center gap-2">
-              <Package className="w-7 h-7 text-blue-600" />
-              ¿Cómo usar el eCommerce en tu aplicación?
+              <Store className="w-7 h-7 text-purple-600" />
+              ¿Cómo usar el eCommerce como Tienda Online Propia?
             </h2>
             
-            <div className="space-y-6">
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
-                  1
+            <div className="bg-white rounded-lg p-6 mb-6 border-2 border-purple-200">
+              <h3 className="font-bold text-lg mb-3 text-purple-900">🎯 Opción 1: Usar POSCommerce Directamente</h3>
+              <p className="text-slate-700 mb-4">
+                Tu módulo eCommerce <strong>YA FUNCIONA como una tienda online completa</strong>. Los clientes pueden:
+              </p>
+              <ol className="space-y-3 ml-6">
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold">1</span>
+                  <span>Ver todos tus productos con fotos, precios y disponibilidad</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold">2</span>
+                  <span>Añadir productos al carrito de compras</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold">3</span>
+                  <span>Rellenar sus datos de envío (nombre, email, teléfono, dirección)</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold">4</span>
+                  <span>Confirmar el pedido - se crea automáticamente la venta y factura</span>
+                </li>
+              </ol>
+              
+              <div className="mt-6 bg-purple-50 rounded-lg p-4 border border-purple-200">
+                <p className="text-sm text-purple-900 mb-2">
+                  <strong>💡 ¿Cómo compartir tu tienda?</strong>
+                </p>
+                <p className="text-sm text-purple-800 mb-3">
+                  Comparte el enlace de la página eCommerce con tus clientes:
+                </p>
+                <div className="flex items-center gap-2 bg-white p-3 rounded border border-purple-300">
+                  <LinkIcon className="w-4 h-4 text-purple-600" />
+                  <code className="text-sm text-purple-700 flex-1">
+                    tuapp.base44.com/eCommerce
+                  </code>
                 </div>
-                <div>
-                  <h3 className="font-bold text-lg mb-2">Marca tus productos para venta online</h3>
-                  <p className="text-slate-700">
-                    En la sección de <strong>Productos</strong>, activa la opción "🌐 Mostrar en eCommerce" 
-                    para cada producto que quieras vender online. Asegúrate de añadir fotos y descripciones atractivas.
-                  </p>
-                </div>
+                <p className="text-xs text-purple-700 mt-2">
+                  Puedes enviar este enlace por WhatsApp, Instagram, Facebook, email, etc.
+                </p>
               </div>
+            </div>
 
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
-                  2
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg mb-2">Sincronización automática de stock</h3>
-                  <p className="text-slate-700">
-                    Cuando vendas un producto en el POS (tienda física), el stock se actualiza automáticamente 
-                    en el eCommerce. Lo mismo ocurre con las ventas online: el stock se sincroniza en tiempo real.
-                  </p>
-                </div>
+            <div className="bg-white rounded-lg p-6 border-2 border-blue-200">
+              <h3 className="font-bold text-lg mb-3 text-blue-900">🔗 Opción 2: Integrar con tu Web Existente</h3>
+              <p className="text-slate-700 mb-4">
+                Si ya tienes una página web (WordPress, HTML, etc.), puedes añadir un botón que lleve a tu eCommerce:
+              </p>
+              <div className="bg-slate-50 rounded-lg p-4 mb-4">
+                <code className="text-sm text-slate-800 block">
+                  {'<a href="tuapp.base44.com/eCommerce">'}<br/>
+                  {'  <button>🛒 Ver Tienda Online</button>'}<br/>
+                  {'</a>'}
+                </code>
               </div>
-
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
-                  3
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg mb-2">Integración con plataformas</h3>
-                  <p className="text-slate-700 mb-3">
-                    Puedes integrar tu catálogo con plataformas como <strong>WooCommerce</strong>, 
-                    <strong>PrestaShop</strong> o crear tu propia tienda online. 
-                    Todas las ventas online se registran automáticamente con canal "🌐 Online".
-                  </p>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 className="font-semibold mb-2 text-blue-900">📚 Guía de Integración</h4>
-                    <p className="text-sm text-blue-800 mb-3">
-                      Para conectar tu tienda online con este sistema, puedes usar nuestra API REST:
-                    </p>
-                    <ul className="text-sm text-blue-900 space-y-2 ml-4">
-                      <li>• <strong>Obtener productos:</strong> GET /api/products?show_in_ecommerce=true</li>
-                      <li>• <strong>Crear venta online:</strong> POST /api/sales (con channel: "ecommerce")</li>
-                      <li>• <strong>Actualizar stock:</strong> PUT /api/products/:id</li>
-                      <li>• <strong>Webhooks:</strong> Configura webhooks para sincronización en tiempo real</li>
-                    </ul>
-                    <p className="text-xs text-blue-700 mt-3">
-                      💡 <strong>Consejo:</strong> Si usas WooCommerce o PrestaShop, puedes crear un plugin personalizado 
-                      que consuma esta API. Si necesitas ayuda con la integración, contacta con soporte técnico.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
-                  4
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg mb-2">Gestión unificada</h3>
-                  <p className="text-slate-700">
-                    Desde el Dashboard puedes ver todas tus ventas (físicas y online), gestionar productos, 
-                    clientes y generar facturas que cumplen con la normativa española (AEAT, IVA, TicketBAI).
-                  </p>
-                </div>
-              </div>
+              <p className="text-sm text-slate-600">
+                O crear un iframe para mostrar la tienda directamente en tu web.
+              </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Opciones de Integración Técnica */}
+        {/* Flujo de Compra */}
         <Card className="shadow-xl border-0 mb-8">
           <CardContent className="p-8">
             <h2 className="text-2xl font-bold mb-6 text-slate-900">
-              🔌 Opciones de Integración Técnica
+              🛒 Flujo de Compra del Cliente
             </h2>
             
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card className="border-2 border-purple-200 bg-purple-50">
-                <CardContent className="p-6">
-                  <h3 className="font-bold text-lg mb-3 text-purple-900">1. Plugin WooCommerce/PrestaShop</h3>
-                  <p className="text-sm text-slate-700 mb-4">
-                    Desarrolla un plugin que sincronice tu tienda online con POSCommerce mediante API REST.
+            <div className="space-y-4">
+              <div className="flex gap-4 items-start">
+                <div className="flex-shrink-0 w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                  1
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg mb-2">Cliente visita tu eCommerce</h3>
+                  <p className="text-slate-700">
+                    Entra al enlace que compartiste y ve tu catálogo completo de productos con fotos, precios y stock disponible.
                   </p>
-                  <div className="bg-white rounded-lg p-3 text-xs font-mono">
-                    <code className="text-purple-700">
-                      fetch('/api/products')<br/>
-                      &nbsp;&nbsp;.then(res =&gt; res.json())<br/>
-                      &nbsp;&nbsp;.then(syncProducts)
-                    </code>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
-              <Card className="border-2 border-green-200 bg-green-50">
-                <CardContent className="p-6">
-                  <h3 className="font-bold text-lg mb-3 text-green-900">2. Tienda Online Propia</h3>
-                  <p className="text-sm text-slate-700 mb-4">
-                    Crea tu propia web de eCommerce que consuma la API de POSCommerce para mostrar productos y procesar pedidos.
+              <div className="flex gap-4 items-start">
+                <div className="flex-shrink-0 w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                  2
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg mb-2">Añade productos al carrito</h3>
+                  <p className="text-slate-700">
+                    Hace clic en "Añadir al Carrito" en cada producto que desea comprar. Puede elegir variantes (colores, tallas) si están disponibles.
                   </p>
-                  <div className="bg-white rounded-lg p-3 text-xs font-mono">
-                    <code className="text-green-700">
-                      POST /api/sales<br/>
-                      &#123; channel: "ecommerce", ... &#125;
-                    </code>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
-              <Card className="border-2 border-orange-200 bg-orange-50">
-                <CardContent className="p-6">
-                  <h3 className="font-bold text-lg mb-3 text-orange-900">3. Marketplace (Amazon, eBay)</h3>
-                  <p className="text-sm text-slate-700 mb-4">
-                    Conecta con marketplaces usando webhooks para actualizar stock y recibir pedidos automáticamente.
+              <div className="flex gap-4 items-start">
+                <div className="flex-shrink-0 w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                  3
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg mb-2">Revisa su pedido</h3>
+                  <p className="text-slate-700">
+                    Hace clic en el botón "Carrito" para ver el resumen de su compra, ajustar cantidades o eliminar productos.
                   </p>
-                  <div className="bg-white rounded-lg p-3 text-xs">
-                    <p className="text-orange-800">
-                      ✓ Sincronización bidireccional<br/>
-                      ✓ Actualización en tiempo real<br/>
-                      ✓ Control total del inventario
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
-              <Card className="border-2 border-blue-200 bg-blue-50">
-                <CardContent className="p-6">
-                  <h3 className="font-bold text-lg mb-3 text-blue-900">4. Redes Sociales</h3>
-                  <p className="text-sm text-slate-700 mb-4">
-                    Vende por Instagram/Facebook Shopping conectando tu catálogo de POSCommerce.
+              <div className="flex gap-4 items-start">
+                <div className="flex-shrink-0 w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                  4
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg mb-2">Completa sus datos</h3>
+                  <p className="text-slate-700">
+                    Rellena el formulario con nombre, email, teléfono y dirección de envío.
                   </p>
-                  <div className="bg-white rounded-lg p-3 text-xs">
-                    <p className="text-blue-800">
-                      📱 Instagram Shopping<br/>
-                      🛍️ Facebook Marketplace<br/>
-                      💬 WhatsApp Business Catalog
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
+
+              <div className="flex gap-4 items-start">
+                <div className="flex-shrink-0 w-12 h-12 bg-green-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                  5
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg mb-2">Confirma el pedido</h3>
+                  <p className="text-slate-700 mb-3">
+                    Al confirmar, el sistema automáticamente:
+                  </p>
+                  <ul className="space-y-2 ml-4">
+                    <li className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-green-600" />
+                      <span>Crea la venta con estado "pendiente"</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-green-600" />
+                      <span>Actualiza el stock de productos</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-green-600" />
+                      <span>Genera la factura automáticamente</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-green-600" />
+                      <span>Registra el pedido en tu sistema</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="flex gap-4 items-start">
+                <div className="flex-shrink-0 w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                  6
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg mb-2">Tú gestionas el envío</h3>
+                  <p className="text-slate-700">
+                    Ves el pedido en la sección "Ventas" con todos los detalles del cliente. 
+                    Preparas el pedido y lo envías. Puedes contactar al cliente por teléfono o email.
+                  </p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -285,39 +300,55 @@ export default function ECommerceInfo() {
           <CardContent className="p-8">
             <h2 className="text-2xl font-bold mb-6 text-slate-900 flex items-center gap-2">
               <TrendingUp className="w-7 h-7 text-green-600" />
-              Ventajas de usar POS + eCommerce integrados
+              Ventajas de usar POSCommerce como Tienda Online
             </h2>
             
             <div className="grid md:grid-cols-2 gap-4">
               <div className="flex items-start gap-3 p-4 bg-green-50 rounded-lg">
                 <Check className="w-6 h-6 text-green-600 flex-shrink-0" />
                 <div>
-                  <h4 className="font-bold mb-1">Un solo inventario</h4>
-                  <p className="text-sm text-slate-700">Sin errores de stock entre tienda física y online</p>
+                  <h4 className="font-bold mb-1">Listo para usar</h4>
+                  <p className="text-sm text-slate-700">No necesitas crear una web desde cero, ya está funcionando</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3 p-4 bg-green-50 rounded-lg">
                 <Check className="w-6 h-6 text-green-600 flex-shrink-0" />
                 <div>
-                  <h4 className="font-bold mb-1">Ahorro de tiempo</h4>
-                  <p className="text-sm text-slate-700">No necesitas actualizar dos sistemas diferentes</p>
+                  <h4 className="font-bold mb-1">Stock en tiempo real</h4>
+                  <p className="text-sm text-slate-700">Los clientes ven exactamente qué productos están disponibles</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3 p-4 bg-green-50 rounded-lg">
                 <Check className="w-6 h-6 text-green-600 flex-shrink-0" />
                 <div>
-                  <h4 className="font-bold mb-1">Vende más</h4>
-                  <p className="text-sm text-slate-700">Llega a clientes que no pueden ir a tu tienda</p>
+                  <h4 className="font-bold mb-1">Gestión centralizada</h4>
+                  <p className="text-sm text-slate-700">Todos los pedidos (físicos y online) en un solo lugar</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3 p-4 bg-green-50 rounded-lg">
                 <Check className="w-6 h-6 text-green-600 flex-shrink-0" />
                 <div>
-                  <h4 className="font-bold mb-1">Cumplimiento fiscal</h4>
-                  <p className="text-sm text-slate-700">Facturas automáticas según normativa española</p>
+                  <h4 className="font-bold mb-1">Facturas automáticas</h4>
+                  <p className="text-sm text-slate-700">Cada venta online genera su factura cumpliendo normativa</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-4 bg-green-50 rounded-lg">
+                <Check className="w-6 h-6 text-green-600 flex-shrink-0" />
+                <div>
+                  <h4 className="font-bold mb-1">Sin costes extra</h4>
+                  <p className="text-sm text-slate-700">No necesitas pagar por plataformas adicionales</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-4 bg-green-50 rounded-lg">
+                <Check className="w-6 h-6 text-green-600 flex-shrink-0" />
+                <div>
+                  <h4 className="font-bold mb-1">Fácil de compartir</h4>
+                  <p className="text-sm text-slate-700">Un simple enlace para empezar a vender online</p>
                 </div>
               </div>
             </div>
@@ -333,9 +364,9 @@ export default function ECommerceInfo() {
             </Button>
           </Link>
           <Link to={createPageUrl("eCommerce")}>
-            <Button variant="outline" className="shadow-lg">
-              Ver Catálogo Online
-              <ArrowRight className="w-5 h-5 ml-2" />
+            <Button className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-lg">
+              <Globe className="w-5 h-5 mr-2" />
+              Ver Mi Tienda Online
             </Button>
           </Link>
         </div>

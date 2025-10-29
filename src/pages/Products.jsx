@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Package, Plus, Search, Edit, Trash2, AlertTriangle, Upload, Image as ImageIcon, X } from "lucide-react";
+import { Package, Plus, Search, Edit, Trash2, AlertTriangle, Upload, Image as ImageIcon, X, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
 
 const CATEGORIES = ["Electrónica", "Ropa", "Alimentos", "Hogar", "Belleza", "Deportes", "Juguetes", "Libros", "Otros"];
@@ -22,8 +22,10 @@ export default function Products() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [storeFilter, setStoreFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("all"); // New state variable
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [sortField, setSortField] = useState('created_date');
+  const [sortDirection, setSortDirection] = useState('desc');
   const [formData, setFormData] = useState({
     name: "",
     sku: "",
@@ -152,6 +154,15 @@ export default function Products() {
     setFormData({ ...formData, variants: newVariants });
   };
 
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc'); // Default to ascending when sorting a new field
+    }
+  };
+
   const filteredProducts = products.filter(p => {
     const matchesSearch = 
       p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -159,9 +170,26 @@ export default function Products() {
       p.category?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStore = storeFilter === "all" || p.store_id === storeFilter || !p.store_id;
-    const matchesCategory = categoryFilter === "all" || p.category === categoryFilter; // New filter logic
+    const matchesCategory = categoryFilter === "all" || p.category === categoryFilter;
     
-    return matchesSearch && matchesStore && matchesCategory; // Apply new filter
+    return matchesSearch && matchesStore && matchesCategory;
+  }).sort((a, b) => {
+    let aVal = a[sortField];
+    let bVal = b[sortField];
+    
+    if (sortField === 'price' || sortField === 'stock') {
+      aVal = typeof aVal === 'number' ? aVal : 0;
+      bVal = typeof bVal === 'number' ? bVal : 0;
+      return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+    } else {
+      // Treat null/undefined as empty strings for string comparison
+      aVal = (aVal === null || aVal === undefined) ? '' : String(aVal).toLowerCase();
+      bVal = (bVal === null || bVal === undefined) ? '' : String(bVal).toLowerCase();
+      
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    }
   });
 
   const resetForm = () => {
@@ -600,8 +628,8 @@ export default function Products() {
 
         <Card className="shadow-lg border-0">
           <CardContent className="p-6">
-            <div className="mb-4 flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1">
+            <div className="mb-4 flex gap-4 flex-wrap">
+              <div className="relative flex-1 min-w-[200px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <Input
                   placeholder="Buscar productos por nombre, SKU o categoría..."
@@ -611,8 +639,8 @@ export default function Products() {
                 />
               </div>
               <Select value={storeFilter} onValueChange={setStoreFilter}>
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="Tienda" />
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">🏪 Todas las tiendas</SelectItem>
@@ -623,11 +651,11 @@ export default function Products() {
               </Select>
               {/* New Category Filter */}
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="Categoría" />
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">🏷️ Todas las categorías</SelectItem>
+                  <SelectItem value="all">📦 Todas las categorías</SelectItem>
                   {CATEGORIES.map(cat => (
                     <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                   ))}
@@ -639,11 +667,31 @@ export default function Products() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Producto</TableHead>
+                    <TableHead onClick={() => handleSort('name')} className="cursor-pointer hover:bg-slate-50">
+                      <div className="flex items-center gap-1">
+                        Producto
+                        <ArrowUpDown className="w-4 h-4" />
+                      </div>
+                    </TableHead>
                     <TableHead>Tienda</TableHead>
-                    <TableHead>Categoría</TableHead>
-                    <TableHead>Precio</TableHead>
-                    <TableHead>Stock</TableHead>
+                    <TableHead onClick={() => handleSort('category')} className="cursor-pointer hover:bg-slate-50">
+                      <div className="flex items-center gap-1">
+                        Categoría
+                        <ArrowUpDown className="w-4 h-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead onClick={() => handleSort('price')} className="cursor-pointer hover:bg-slate-50">
+                      <div className="flex items-center gap-1">
+                        Precio
+                        <ArrowUpDown className="w-4 h-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead onClick={() => handleSort('stock')} className="cursor-pointer hover:bg-slate-50">
+                      <div className="flex items-center gap-1">
+                        Stock
+                        <ArrowUpDown className="w-4 h-4" />
+                      </div>
+                    </TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>eCommerce</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>

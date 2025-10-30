@@ -1,23 +1,26 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { TrendingUp, Search, Eye, Calendar } from "lucide-react";
+import { TrendingUp, Search, Eye, Calendar, ArrowUpDown } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { toast } from "sonner";
 
 export default function Sales() {
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSale, setSelectedSale] = useState(null);
   const [storeFilter, setStoreFilter] = useState("all");
   const [channelFilter, setChannelFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [sortField, setSortField] = useState('sale_date');
+  const [sortDirection, setSortDirection] = useState('desc');
 
   const { data: sales = [], isLoading } = useQuery({
     queryKey: ['sales'],
@@ -29,6 +32,23 @@ export default function Sales() {
     queryFn: () => base44.entities.Store.list(),
   });
 
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }) => base44.entities.Sale.update(id, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      toast.success("Estado actualizado");
+    },
+  });
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   const filteredSales = sales.filter(s => {
     const matchesSearch = 
       s.sale_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -38,6 +58,23 @@ export default function Sales() {
     const matchesChannel = channelFilter === "all" || s.channel === channelFilter;
     
     return matchesSearch && matchesStore && matchesChannel;
+  }).sort((a, b) => {
+    let aVal = a[sortField] || '';
+    let bVal = b[sortField] || '';
+    
+    if (sortField === 'sale_date') {
+      aVal = new Date(aVal).getTime();
+      bVal = new Date(bVal).getTime();
+    } else if (sortField === 'total') {
+      aVal = aVal || 0;
+      bVal = bVal || 0;
+    }
+    
+    if (sortDirection === 'asc') {
+      return aVal > bVal ? 1 : -1;
+    } else {
+      return aVal < bVal ? 1 : -1;
+    }
   });
 
   const channelColors = {
@@ -102,14 +139,49 @@ export default function Sales() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Número</TableHead>
+                    <TableHead onClick={() => handleSort('sale_number')} className="cursor-pointer hover:bg-slate-50">
+                      <div className="flex items-center gap-1">
+                        Número
+                        <ArrowUpDown className="w-4 h-4" />
+                      </div>
+                    </TableHead>
                     <TableHead>Tienda</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Canal</TableHead>
-                    <TableHead>Pago</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead onClick={() => handleSort('customer_name')} className="cursor-pointer hover:bg-slate-50">
+                      <div className="flex items-center gap-1">
+                        Cliente
+                        <ArrowUpDown className="w-4 h-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead onClick={() => handleSort('sale_date')} className="cursor-pointer hover:bg-slate-50">
+                      <div className="flex items-center gap-1">
+                        Fecha
+                        <ArrowUpDown className="w-4 h-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead onClick={() => handleSort('channel')} className="cursor-pointer hover:bg-slate-50">
+                      <div className="flex items-center gap-1">
+                        Canal
+                        <ArrowUpDown className="w-4 h-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead onClick={() => handleSort('payment_method')} className="cursor-pointer hover:bg-slate-50">
+                      <div className="flex items-center gap-1">
+                        Pago
+                        <ArrowUpDown className="w-4 h-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead onClick={() => handleSort('status')} className="cursor-pointer hover:bg-slate-50">
+                      <div className="flex items-center gap-1">
+                        Estado
+                        <ArrowUpDown className="w-4 h-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead onClick={() => handleSort('total')} className="cursor-pointer hover:bg-slate-50">
+                      <div className="flex items-center gap-1">
+                        Total
+                        <ArrowUpDown className="w-4 h-4" />
+                      </div>
+                    </TableHead>
                     <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -134,9 +206,22 @@ export default function Sales() {
                         </TableCell>
                         <TableCell className="capitalize">{sale.payment_method}</TableCell>
                         <TableCell>
-                          <Badge className={statusColors[sale.status]}>
-                            {sale.status}
-                          </Badge>
+                          <Select
+                            value={sale.status}
+                            onValueChange={(newStatus) => updateStatusMutation.mutate({ id: sale.id, status: newStatus })}
+                          >
+                            <SelectTrigger className="w-[130px] h-8">
+                              <Badge className={statusColors[sale.status]}>
+                                {sale.status}
+                              </Badge>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="completada">Completada</SelectItem>
+                              <SelectItem value="pendiente">Pendiente</SelectItem>
+                              <SelectItem value="cancelada">Cancelada</SelectItem>
+                              <SelectItem value="devuelta">Devuelta</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </TableCell>
                         <TableCell className="text-right font-bold text-green-700">
                           {sale.total?.toFixed(2)}€

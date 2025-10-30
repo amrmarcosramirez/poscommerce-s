@@ -181,7 +181,13 @@ export default function Products() {
       aVal = typeof aVal === 'number' ? aVal : 0;
       bVal = typeof bVal === 'number' ? bVal : 0;
       return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
-    } else {
+    } else if (sortField === 'is_active' || sortField === 'show_in_ecommerce') {
+      // Sort booleans (true comes after false for asc, and before for desc)
+      aVal = aVal ? 1 : 0;
+      bVal = bVal ? 1 : 0;
+      return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+    }
+    else {
       // Treat null/undefined as empty strings for string comparison
       aVal = (aVal === null || aVal === undefined) ? '' : String(aVal).toLowerCase();
       bVal = (bVal === null || bVal === undefined) ? '' : String(bVal).toLowerCase();
@@ -673,7 +679,12 @@ export default function Products() {
                         <ArrowUpDown className="w-4 h-4" />
                       </div>
                     </TableHead>
-                    <TableHead>Tienda</TableHead>
+                    <TableHead onClick={() => handleSort('store_id')} className="cursor-pointer hover:bg-slate-50">
+                      <div className="flex items-center gap-1">
+                        Tienda
+                        <ArrowUpDown className="w-4 h-4" />
+                      </div>
+                    </TableHead>
                     <TableHead onClick={() => handleSort('category')} className="cursor-pointer hover:bg-slate-50">
                       <div className="flex items-center gap-1">
                         Categoría
@@ -692,8 +703,18 @@ export default function Products() {
                         <ArrowUpDown className="w-4 h-4" />
                       </div>
                     </TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>eCommerce</TableHead>
+                    <TableHead onClick={() => handleSort('is_active')} className="cursor-pointer hover:bg-slate-50">
+                      <div className="flex items-center gap-1">
+                        Estado
+                        <ArrowUpDown className="w-4 h-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead onClick={() => handleSort('show_in_ecommerce')} className="cursor-pointer hover:bg-slate-50">
+                      <div className="flex items-center gap-1">
+                        eCommerce
+                        <ArrowUpDown className="w-4 h-4" />
+                      </div>
+                    </TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>

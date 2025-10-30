@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Plus, Search, Edit, Trash2, User } from "lucide-react";
+import { Users, Plus, Search, Edit, Trash2, User, ArrowUpDown } from "lucide-react"; // Added ArrowUpDown
 import { toast } from "sonner";
 
 // Función para formatear nombres con mayúscula inicial
@@ -46,6 +46,8 @@ export default function Customers() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortField, setSortField] = useState('created_date'); // New state for sorting
+  const [sortDirection, setSortDirection] = useState('desc'); // New state for sorting
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -95,13 +97,46 @@ export default function Customers() {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       toast.success("Cliente eliminado");
     },
+    onError: (error) => {
+      toast.error("Error al eliminar cliente: " + error.message);
+    }
   });
+
+  // New handleSort function
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
 
   const filteredCustomers = customers.filter(c =>
     c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.phone?.includes(searchTerm)
-  );
+  ).sort((a, b) => { // Added sorting logic
+    let aVal = a[sortField];
+    let bVal = b[sortField];
+
+    // Handle null/undefined values and ensure numeric comparison for specific fields
+    if (sortField === 'total_purchases' || sortField === 'purchase_count') {
+      aVal = typeof aVal === 'number' ? aVal : 0;
+      bVal = typeof bVal === 'number' ? bVal : 0;
+      return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+    } else {
+      // Treat null/undefined as empty strings for string comparison
+      aVal = aVal !== null && aVal !== undefined ? String(aVal).toLowerCase() : '';
+      bVal = bVal !== null && bVal !== undefined ? String(bVal).toLowerCase() : '';
+      
+      if (sortDirection === 'asc') {
+        return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+      } else {
+        return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+      }
+    }
+  });
 
   const resetForm = () => {
     setFormData({
@@ -361,12 +396,42 @@ export default function Customers() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Contacto</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Ciudad</TableHead>
-                    <TableHead>Compras</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead onClick={() => handleSort('name')} className="cursor-pointer hover:bg-slate-50">
+                      <div className="flex items-center gap-1">
+                        Cliente
+                        <ArrowUpDown className="w-4 h-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead onClick={() => handleSort('email')} className="cursor-pointer hover:bg-slate-50">
+                      <div className="flex items-center gap-1">
+                        Contacto
+                        <ArrowUpDown className="w-4 h-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead onClick={() => handleSort('customer_type')} className="cursor-pointer hover:bg-slate-50">
+                      <div className="flex items-center gap-1">
+                        Tipo
+                        <ArrowUpDown className="w-4 h-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead onClick={() => handleSort('city')} className="cursor-pointer hover:bg-slate-50">
+                      <div className="flex items-center gap-1">
+                        Ciudad
+                        <ArrowUpDown className="w-4 h-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead onClick={() => handleSort('purchase_count')} className="cursor-pointer hover:bg-slate-50">
+                      <div className="flex items-center gap-1">
+                        Compras
+                        <ArrowUpDown className="w-4 h-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead onClick={() => handleSort('total_purchases')} className="cursor-pointer hover:bg-slate-50">
+                      <div className="flex items-center gap-1">
+                        Total
+                        <ArrowUpDown className="w-4 h-4" />
+                      </div>
+                    </TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>

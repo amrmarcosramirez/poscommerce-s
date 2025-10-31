@@ -17,6 +17,7 @@ export default function ECommerce() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [selectedOnlineStore, setSelectedOnlineStore] = useState("all"); // New state for selected online store
   const [cart, setCart] = useState([]);
   const [showCheckout, setShowCheckout] = useState(false);
   const [customerData, setCustomerData] = useState({
@@ -34,10 +35,17 @@ export default function ECommerce() {
     queryFn: () => base44.entities.Product.list(),
   });
 
+  const { data: stores = [] } = useQuery({ // New query for stores
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list(),
+  });
+
   const { data: sales = [] } = useQuery({
     queryKey: ['sales'],
     queryFn: () => base44.entities.Sale.filter({ channel: 'ecommerce' }, '-sale_date', 50),
   });
+
+  const onlineStores = stores.filter(s => s.store_type === 'online' && s.is_active); // Filter for active online stores
 
   const createOrderMutation = useMutation({
     mutationFn: async (orderData) => {
@@ -46,19 +54,21 @@ export default function ECommerce() {
       
       // Actualizar stock
       for (const item of orderData.items) {
-        const product = products.find(p => p.id === item.product_id);
-        if (product) {
-          if (item.variant_index !== undefined && product.has_variants) {
-            const newVariants = [...product.variants];
+        // Need to find the product by its original_id if it's a variant, or by id if not
+        const originalProduct = products.find(p => p.id === item.product_id);
+
+        if (originalProduct) {
+          if (item.variant_index !== undefined && originalProduct.has_variants) {
+            const newVariants = [...originalProduct.variants];
             newVariants[item.variant_index].stock -= item.quantity;
             const totalStock = newVariants.reduce((sum, v) => sum + v.stock, 0);
-            await base44.entities.Product.update(product.id, {
+            await base44.entities.Product.update(originalProduct.id, {
               variants: newVariants,
               stock: totalStock
             });
           } else {
-            await base44.entities.Product.update(product.id, {
-              stock: product.stock - item.quantity
+            await base44.entities.Product.update(originalProduct.id, {
+              stock: originalProduct.stock - item.quantity
             });
           }
         }
@@ -79,9 +89,9 @@ export default function ECommerce() {
           iva_rate: item.iva_rate,
           subtotal: item.subtotal
         })),
-        base_imponible: orderData.subtotal,
-        total_iva: orderData.total_iva,
-        total: orderData.total,
+        base_imponible: totals.subtotal, // Use totals from current calculation
+        total_iva: totals.ivaAmount, // Use totals from current calculation
+        total: totals.total, // Use totals from current calculation
         payment_method: "online",
         status: "emitida"
       });
@@ -107,11 +117,26 @@ export default function ECommerce() {
     },
   });
 
-  // Expandir productos con variantes
+  // Expandir productos con variantes filtrando por tienda online
   const expandedProducts = products.flatMap(product => {
-    if (!product.is_active || !product.show_in_ecommerce) {
+    if (!product.is_active) {
       return [];
     }
+    
+    // Products must be associated with at least one online store to be shown
+    const productOnlineStores = product.online_stores || [];
+    if (productOnlineStores.length === 0) {
+      return [];
+    }
+
+    // Filter by selected online store
+    if (selectedOnlineStore !== "all" && !productOnlineStores.includes(selectedOnlineStore)) {
+      return [];
+    }
+    
+    // if (!product.is_active || !product.show_in_ecommerce) { // Original line, replaced by above logic
+    //   return [];
+    // }
     
     if (!product.has_variants || !product.variants || product.variants.length === 0) {
       return product.stock > 0 ? [product] : [];
@@ -142,8 +167,10 @@ export default function ECommerce() {
   const totalOnlineSales = sales.reduce((sum, sale) => sum + (sale.total || 0), 0);
 
   const addToCart = (product) => {
-    const productId = product.is_variant ? product.id : product.id;
-    const existingItem = cart.find(item => item.cart_id === productId);
+    // For variants, we use the generated `id` (product.id) which includes the variant index
+    // For non-variants, it's just the product.id
+    const cartItemId = product.is_variant ? product.id : product.id; 
+    const existingItem = cart.find(item => item.cart_id === cartItemId);
     
     if (existingItem) {
       if (existingItem.quantity >= product.stock) {
@@ -151,15 +178,15 @@ export default function ECommerce() {
         return;
       }
       setCart(cart.map(item =>
-        item.cart_id === productId
+        item.cart_id === cartItemId
           ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.price }
           : item
       ));
     } else {
       setCart([...cart, {
-        cart_id: productId,
-        product_id: product.is_variant ? product.original_id : product.id,
-        variant_index: product.variant_index,
+        cart_id: cartItemId, // Unique ID for cart item (product_id or product_id_variant_index)
+        product_id: product.is_variant ? product.original_id : product.id, // Original product ID
+        variant_index: product.is_variant ? product.variant_index : undefined, // Variant index if applicable
         product_name: product.name,
         quantity: 1,
         price: product.price,
@@ -205,7 +232,7 @@ export default function ECommerce() {
     setShowCheckout(true);
   };
 
-  const completeOrder = (e) => {
+  const completeOrder = async (e) => {
     e.preventDefault();
     
     if (!customerData.name || !customerData.email || !customerData.phone) {
@@ -221,7 +248,7 @@ export default function ECommerce() {
       customer_name: customerData.name,
       sale_date: new Date().toISOString(),
       items: cart.map(item => ({
-        product_id: item.product_id,
+        product_id: item.product_id, // This is the original_id for variants
         product_name: item.product_name,
         quantity: item.quantity,
         price: item.price,
@@ -236,7 +263,13 @@ export default function ECommerce() {
       payment_method: "online",
       status: "pendiente",
       channel: "ecommerce",
-      notes: customerData.notes
+      notes: customerData.notes,
+      store_id: selectedOnlineStore !== "all" ? selectedOnlineStore : onlineStores.length === 1 ? onlineStores[0].id : null, // Assign store_id
+      customer_email: customerData.email,
+      customer_phone: customerData.phone,
+      customer_address: customerData.address,
+      customer_city: customerData.city,
+      customer_postal_code: customerData.postal_code,
     };
 
     createOrderMutation.mutate(orderData);
@@ -254,6 +287,26 @@ export default function ECommerce() {
               🌐 Tienda Online
             </h1>
             <p className="text-slate-600 mt-1">Compra tus productos online</p>
+            
+            {/* Selector de tienda online */}
+            {onlineStores.length > 1 && (
+              <div className="mt-3">
+                <Select value={selectedOnlineStore} onValueChange={(value) => {
+                  setSelectedOnlineStore(value);
+                  setCart([]); // Clear cart when switching stores to avoid issues with product availability
+                }}>
+                  <SelectTrigger className="w-[250px]">
+                    <SelectValue placeholder="Selecciona una tienda" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las tiendas</SelectItem>
+                    {onlineStores.map(store => (
+                      <SelectItem key={store.id} value={store.id}>{store.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           {/* Carrito siempre visible */}
@@ -275,7 +328,7 @@ export default function ECommerce() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-slate-600 mb-1">Productos Disponibles</p>
-                  <p className="text-3xl font-bold text-purple-600">{expandedProducts.length}</p>
+                  <p className="text-3xl font-bold text-purple-600">{filteredProducts.length}</p> {/* Changed to filteredProducts to reflect current view */}
                 </div>
                 <Package className="w-12 h-12 text-purple-200" />
               </div>
@@ -324,7 +377,7 @@ export default function ECommerce() {
               </div>
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger className="w-[200px]">
-                  <SelectValue />
+                  <SelectValue placeholder="Categoría" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas las categorías</SelectItem>
@@ -381,9 +434,10 @@ export default function ECommerce() {
                       <Button 
                         onClick={() => addToCart(product)} 
                         className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+                        disabled={product.stock === 0}
                       >
                         <ShoppingCart className="w-4 h-4 mr-2" />
-                        Añadir al Carrito
+                        {product.stock === 0 ? "Agotado" : "Añadir al Carrito"}
                       </Button>
                     </CardContent>
                   </Card>
@@ -405,37 +459,43 @@ export default function ECommerce() {
               <div>
                 <h3 className="font-bold text-lg mb-4">Tu Pedido</h3>
                 <div className="space-y-3 max-h-[300px] overflow-y-auto mb-4">
-                  {cart.map((item) => (
-                    <div key={item.cart_id} className="p-3 bg-slate-50 rounded-lg">
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-medium text-sm">{item.product_name}</h4>
-                        <button
-                          onClick={() => removeFromCart(item.cart_id)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
+                  {cart.length === 0 ? (
+                    <p className="text-center text-slate-500">El carrito está vacío.</p>
+                  ) : (
+                    cart.map((item) => (
+                      <div key={item.cart_id} className="p-3 bg-slate-50 rounded-lg">
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="font-medium text-sm">{item.product_name}</h4>
                           <button
-                            onClick={() => updateQuantity(item.cart_id, -1)}
-                            className="w-6 h-6 rounded bg-white border flex items-center justify-center"
+                            onClick={() => removeFromCart(item.cart_id)}
+                            className="text-red-500 hover:text-red-700"
                           >
-                            <Minus className="w-3 h-3" />
-                          </button>
-                          <span className="font-semibold">{item.quantity}</span>
-                          <button
-                            onClick={() => updateQuantity(item.cart_id, 1)}
-                            className="w-6 h-6 rounded bg-white border flex items-center justify-center"
-                          >
-                            <Plus className="w-3 h-3" />
+                            <X className="w-4 h-4" />
                           </button>
                         </div>
-                        <span className="font-bold text-purple-600">{item.subtotal.toFixed(2)}€</span>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => updateQuantity(item.cart_id, -1)}
+                              className="w-6 h-6 rounded bg-white border flex items-center justify-center"
+                              disabled={item.quantity <= 1}
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="font-semibold">{item.quantity}</span>
+                            <button
+                              onClick={() => updateQuantity(item.cart_id, 1)}
+                              className="w-6 h-6 rounded bg-white border flex items-center justify-center"
+                              disabled={item.quantity >= item.max_stock}
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                          <span className="font-bold text-purple-600">{(item.subtotal * (1 + item.iva_rate / 100)).toFixed(2)}€</span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
 
                 <div className="border-t pt-4 space-y-2">
@@ -530,7 +590,7 @@ export default function ECommerce() {
                 <Button 
                   type="submit" 
                   className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 py-6"
-                  disabled={createOrderMutation.isPending}
+                  disabled={createOrderMutation.isPending || cart.length === 0}
                 >
                   {createOrderMutation.isPending ? (
                     "Procesando..."

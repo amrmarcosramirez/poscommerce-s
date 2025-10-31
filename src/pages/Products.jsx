@@ -13,7 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Package, Plus, Search, Edit, Trash2, AlertTriangle, Upload, Image as ImageIcon, X, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
 
-const CATEGORIES = ["Electrónica", "Ropa", "Alimentos", "Hogar", "Belleza", "Deportes", "Juguetes", "Libros", "Otros"];
 const IVA_RATES = [0, 4, 10, 21];
 
 export default function Products() {
@@ -30,7 +29,7 @@ export default function Products() {
     name: "",
     sku: "",
     description: "",
-    category: "Otros",
+    category: "", // Changed from "Otros" to empty string
     price: 0,
     cost: 0,
     iva_rate: 21,
@@ -39,7 +38,7 @@ export default function Products() {
     barcode: "",
     image_url: "",
     store_id: "",
-    show_in_ecommerce: false,
+    online_stores: [], // New field
     is_active: true,
     has_variants: false,
     variants: []
@@ -54,6 +53,15 @@ export default function Products() {
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list(),
   });
+
+  // New query for categories
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => base44.entities.Category.list('name'),
+  });
+
+  const activeCategories = categories.filter(c => c.is_active);
+  const onlineStores = stores.filter(s => s.store_type === 'online' && s.is_active);
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Product.create(data),
@@ -99,7 +107,7 @@ export default function Products() {
     setUploadingImage(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      
+
       if (isVariant && variantIndex !== null) {
         const newVariants = [...formData.variants];
         newVariants[variantIndex].image_url = file_url;
@@ -107,7 +115,7 @@ export default function Products() {
       } else {
         setFormData({ ...formData, image_url: file_url });
       }
-      
+
       toast.success("Imagen subida correctamente");
     } catch (error) {
       toast.error("Error al subir la imagen");
@@ -164,24 +172,24 @@ export default function Products() {
   };
 
   const filteredProducts = products.filter(p => {
-    const matchesSearch = 
+    const matchesSearch =
       p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.category?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStore = storeFilter === "all" || p.store_id === storeFilter || !p.store_id;
     const matchesCategory = categoryFilter === "all" || p.category === categoryFilter;
-    
+
     return matchesSearch && matchesStore && matchesCategory;
   }).sort((a, b) => {
     let aVal = a[sortField];
     let bVal = b[sortField];
-    
+
     if (sortField === 'price' || sortField === 'stock') {
       aVal = typeof aVal === 'number' ? aVal : 0;
       bVal = typeof bVal === 'number' ? bVal : 0;
       return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
-    } else if (sortField === 'is_active' || sortField === 'show_in_ecommerce') {
+    } else if (sortField === 'is_active') {
       // Sort booleans (true comes after false for asc, and before for desc)
       aVal = aVal ? 1 : 0;
       bVal = bVal ? 1 : 0;
@@ -191,7 +199,7 @@ export default function Products() {
       // Treat null/undefined as empty strings for string comparison
       aVal = (aVal === null || aVal === undefined) ? '' : String(aVal).toLowerCase();
       bVal = (bVal === null || bVal === undefined) ? '' : String(bVal).toLowerCase();
-      
+
       if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
       if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
       return 0;
@@ -203,7 +211,7 @@ export default function Products() {
       name: "",
       sku: "",
       description: "",
-      category: "Otros",
+      category: "", // Changed
       price: 0,
       cost: 0,
       iva_rate: 21,
@@ -212,7 +220,7 @@ export default function Products() {
       barcode: "",
       image_url: "",
       store_id: "",
-      show_in_ecommerce: false,
+      online_stores: [], // New field
       is_active: true,
       has_variants: false,
       variants: []
@@ -224,16 +232,31 @@ export default function Products() {
     setEditingProduct(product);
     setFormData({
       ...product,
+      online_stores: product.online_stores || [], // Ensure online_stores is an array
       variants: product.variants || []
     });
     setIsDialogOpen(true);
   };
 
+  const toggleOnlineStore = (storeId) => {
+    if (formData.online_stores.includes(storeId)) {
+      setFormData({
+        ...formData,
+        online_stores: formData.online_stores.filter(id => id !== storeId)
+      });
+    } else {
+      setFormData({
+        ...formData,
+        online_stores: [...formData.online_stores, storeId]
+      });
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     // Si tiene variantes, sumar el stock total
-    const totalStock = formData.has_variants 
+    const totalStock = formData.has_variants
       ? formData.variants.reduce((sum, v) => sum + (v.stock || 0), 0)
       : formData.stock;
 
@@ -241,7 +264,10 @@ export default function Products() {
       ...formData,
       stock: totalStock,
       // Ensure variants array is empty if has_variants is false
-      variants: formData.has_variants ? formData.variants : []
+      variants: formData.has_variants ? formData.variants : [],
+      // Remove show_in_ecommerce as it's replaced by online_stores
+      // No need to explicitly remove if it's not in formData, but good for clarity if it was
+      // const { show_in_ecommerce, ...rest } = formData; (alternative, but current formData structure doesn't have it)
     };
 
     if (editingProduct) {
@@ -282,9 +308,9 @@ export default function Products() {
                   <div className="flex items-center gap-4">
                     {formData.image_url ? (
                       <div className="relative">
-                        <img 
-                          src={formData.image_url} 
-                          alt="Producto" 
+                        <img
+                          src={formData.image_url}
+                          alt="Producto"
                           className="w-32 h-32 object-cover rounded-lg border"
                         />
                         <button
@@ -351,14 +377,14 @@ export default function Products() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="category">Categoría</Label>
-                    <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
+                    <Label htmlFor="category">Categoría *</Label>
+                    <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})} required>
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder="Selecciona una categoría" />
                       </SelectTrigger>
                       <SelectContent>
-                        {CATEGORIES.map(cat => (
-                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        {activeCategories.map(cat => (
+                          <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -421,7 +447,7 @@ export default function Products() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   {/* Checkbox variantes */}
                   <div className="space-y-2 md:col-span-2">
                     <Label className="flex items-center gap-2 cursor-pointer">
@@ -460,17 +486,28 @@ export default function Products() {
                     </>
                   )}
 
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.show_in_ecommerce}
-                        onChange={(e) => setFormData({...formData, show_in_ecommerce: e.target.checked})}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      🌐 Mostrar en eCommerce
-                    </Label>
+                  {/* Tiendas Online */}
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>🌐 Mostrar en Tiendas Online</Label>
+                    <div className="grid md:grid-cols-2 gap-2">
+                      {onlineStores.length === 0 ? (
+                        <p className="text-sm text-slate-500 col-span-2">No hay tiendas online configuradas</p>
+                      ) : (
+                        onlineStores.map(store => (
+                          <label key={store.id} className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-slate-50">
+                            <input
+                              type="checkbox"
+                              checked={formData.online_stores.includes(store.id)}
+                              onChange={() => toggleOnlineStore(store.id)}
+                              className="h-4 w-4"
+                            />
+                            <span className="text-sm">{store.name}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
                   </div>
+
                   <div className="space-y-2">
                     <Label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -494,7 +531,7 @@ export default function Products() {
                         Añadir Variante
                       </Button>
                     </div>
-                    
+
                     {formData.variants.map((variant, index) => (
                       <Card key={index} className="p-4 bg-slate-50 relative">
                         <div className="flex justify-between items-start mb-3">
@@ -515,9 +552,9 @@ export default function Products() {
                           <div className="flex items-center gap-4">
                             {variant.image_url ? (
                               <div className="relative">
-                                <img 
-                                  src={variant.image_url} 
-                                  alt={`Variante ${index + 1}`} 
+                                <img
+                                  src={variant.image_url}
+                                  alt={`Variante ${index + 1}`}
                                   className="w-24 h-24 object-cover rounded-lg border"
                                 />
                                 <button
@@ -555,7 +592,7 @@ export default function Products() {
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="grid md:grid-cols-3 gap-3">
                           <div className="space-y-2">
                             <Label>Color</Label>
@@ -662,8 +699,8 @@ export default function Products() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">📦 Todas las categorías</SelectItem>
-                  {CATEGORIES.map(cat => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  {activeCategories.map(cat => (
+                    <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -709,25 +746,21 @@ export default function Products() {
                         <ArrowUpDown className="w-4 h-4" />
                       </div>
                     </TableHead>
-                    <TableHead onClick={() => handleSort('show_in_ecommerce')} className="cursor-pointer hover:bg-slate-50">
-                      <div className="flex items-center gap-1">
-                        eCommerce
-                        <ArrowUpDown className="w-4 h-4" />
-                      </div>
-                    </TableHead>
+                    <TableHead>eCommerce</TableHead> {/* Updated TableHead */}
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredProducts.map((product) => {
                     const store = stores.find(s => s.id === product.store_id);
+                    const productOnlineStores = product.online_stores || [];
                     return (
                       <TableRow key={product.id} className="hover:bg-slate-50">
                         <TableCell>
                           <div className="flex items-center gap-3">
                             {product.image_url ? (
-                              <img 
-                                src={product.image_url} 
+                              <img
+                                src={product.image_url}
                                 alt={product.name}
                                 className="w-12 h-12 object-cover rounded"
                               />
@@ -774,8 +807,22 @@ export default function Products() {
                             {product.is_active ? "Activo" : "Inactivo"}
                           </Badge>
                         </TableCell>
+                        {/* New eCommerce cell */}
                         <TableCell>
-                          {product.show_in_ecommerce ? "✅" : "❌"}
+                          {productOnlineStores.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {productOnlineStores.map(storeId => {
+                                const onlineStore = stores.find(s => s.id === storeId);
+                                return onlineStore ? (
+                                  <Badge key={storeId} variant="outline" className="text-xs">
+                                    {onlineStore.name}
+                                  </Badge>
+                                ) : null;
+                              })}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">

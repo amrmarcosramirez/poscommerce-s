@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -11,6 +10,54 @@ import { Search, ShoppingCart, Trash2, Plus, Minus, CreditCard, User, Check, Sto
 import { format } from "date-fns";
 import { toast } from "sonner";
 import TicketModal from "../components/pos/TicketModal";
+
+// Función helper para obtener el stock según el modo y tienda
+const getStockForStore = (product, storeId) => {
+  if (!product) return 0;
+  
+  if (product.stock_mode === 'unique') {
+    return product.stock || 0;
+  } else if (product.stock_mode === 'by_store') {
+    const storeStock = product.stock_by_store?.find(s => s.store_id === storeId);
+    return storeStock?.stock || 0;
+  } else if (product.stock_mode === 'by_group') {
+    const group = product.store_groups?.find(g => g.store_ids?.includes(storeId));
+    return group?.stock || 0;
+  }
+  return 0;
+};
+
+// Función para actualizar stock después de venta
+const updateStockAfterSale = async (product, storeId, quantity) => {
+  if (product.stock_mode === 'unique') {
+    return {
+      stock: product.stock - quantity
+    };
+  } else if (product.stock_mode === 'by_store') {
+    const newStockByStore = [...(product.stock_by_store || [])];
+    const storeIndex = newStockByStore.findIndex(s => s.store_id === storeId);
+    if (storeIndex >= 0) {
+      newStockByStore[storeIndex].stock -= quantity;
+    }
+    const totalStock = newStockByStore.reduce((sum, s) => sum + s.stock, 0);
+    return {
+      stock: totalStock,
+      stock_by_store: newStockByStore
+    };
+  } else if (product.stock_mode === 'by_group') {
+    const newStoreGroups = [...(product.store_groups || [])];
+    const groupIndex = newStoreGroups.findIndex(g => g.store_ids?.includes(storeId));
+    if (groupIndex >= 0) {
+      newStoreGroups[groupIndex].stock -= quantity;
+    }
+    const totalStock = newStoreGroups.reduce((sum, g) => sum + g.stock, 0);
+    return {
+      stock: totalStock,
+      store_groups: newStoreGroups
+    };
+  }
+  return {};
+};
 
 export default function POS() {
   const queryClient = useQueryClient();
@@ -42,7 +89,7 @@ export default function POS() {
   // Seleccionar primera tienda activa por defecto
   useEffect(() => {
     if (!selectedStore && stores.length > 0) {
-      const activeStore = stores.find(s => s.is_active);
+      const activeStore = stores.find(s => s.is_active && s.store_type === 'fisica');
       if (activeStore) setSelectedStore(activeStore.id);
     }
   }, [stores, selectedStore]);
@@ -58,17 +105,37 @@ export default function POS() {
           if (item.variant_index !== undefined && product.has_variants) {
             // Actualizar stock de variante
             const newVariants = [...product.variants];
-            newVariants[item.variant_index].stock -= item.quantity;
-            const totalStock = newVariants.reduce((sum, v) => sum + v.stock, 0);
+            const variant = newVariants[item.variant_index];
+            
+            if (variant.stock_mode === 'unique') {
+              newVariants[item.variant_index].stock -= item.quantity;
+            } else if (variant.stock_mode === 'by_store') {
+              const storeIndex = variant.stock_by_store?.findIndex(s => s.store_id === selectedStore);
+              if (storeIndex >= 0) {
+                newVariants[item.variant_index].stock_by_store[storeIndex].stock -= item.quantity;
+              }
+            } else if (variant.stock_mode === 'by_group') {
+              const groupIndex = variant.store_groups?.findIndex(g => g.store_ids?.includes(selectedStore));
+              if (groupIndex >= 0) {
+                newVariants[item.variant_index].store_groups[groupIndex].stock -= item.quantity;
+              }
+            }
+            
+            const totalStock = newVariants.reduce((sum, v) => {
+              if (v.stock_mode === 'unique') return sum + v.stock;
+              if (v.stock_mode === 'by_store') return sum + (v.stock_by_store || []).reduce((s, st) => s + st.stock, 0);
+              if (v.stock_mode === 'by_group') return sum + (v.store_groups || []).reduce((s, g) => s + g.stock, 0);
+              return sum;
+            }, 0);
+            
             await base44.entities.Product.update(product.id, {
               variants: newVariants,
               stock: totalStock
             });
           } else {
             // Actualizar stock normal
-            await base44.entities.Product.update(product.id, {
-              stock: product.stock - item.quantity
-            });
+            const stockUpdate = await updateStockAfterSale(product, selectedStore, item.quantity);
+            await base44.entities.Product.update(product.id, stockUpdate);
           }
         }
       }
@@ -131,26 +198,45 @@ export default function POS() {
     const isInSelectedStore = productPhysicalStores.length === 0 || 
                               productPhysicalStores.includes(selectedStore);
     
-    if (!isInSelectedStore || !product.is_active || product.stock <= 0) {
+    if (!isInSelectedStore || !product.is_active) {
       return [];
     }
     
+    // Obtener stock según modo y tienda
+    const productStock = getStockForStore(product, selectedStore);
+    
     if (!product.has_variants || !product.variants || product.variants.length === 0) {
-      return [product];
+      return productStock > 0 ? [{...product, stock: productStock}] : [];
     }
-    return product.variants.map((variant, index) => ({
-      ...product,
-      id: `${product.id}_variant_${index}`,
-      original_id: product.id,
-      variant_index: index,
-      name: `${product.name} - ${variant.attributes.color || ''} ${variant.attributes.talla || ''}`.trim(),
-      price: product.price + (variant.price_adjustment || 0),
-      stock: variant.stock,
-      barcode: variant.barcode || product.barcode,
-      sku: variant.sku_variant || product.sku,
-      image_url: variant.image_url || product.image_url,
-      is_variant: true
-    }));
+    
+    return product.variants.map((variant, index) => {
+      let variantStock = 0;
+      if (variant.stock_mode === 'unique') {
+        variantStock = variant.stock || 0;
+      } else if (variant.stock_mode === 'by_store') {
+        const storeStock = variant.stock_by_store?.find(s => s.store_id === selectedStore);
+        variantStock = storeStock?.stock || 0;
+      } else if (variant.stock_mode === 'by_group') {
+        const group = variant.store_groups?.find(g => g.store_ids?.includes(selectedStore));
+        variantStock = group?.stock || 0;
+      }
+      
+      if (variantStock <= 0) return null;
+      
+      return {
+        ...product,
+        id: `${product.id}_variant_${index}`,
+        original_id: product.id,
+        variant_index: index,
+        name: `${product.name} - ${variant.attributes.color || ''} ${variant.attributes.talla || ''}`.trim(),
+        price: product.price + (variant.price_adjustment || 0),
+        stock: variantStock,
+        barcode: variant.barcode || product.barcode,
+        sku: variant.sku_variant || product.sku,
+        image_url: variant.image_url || product.image_url,
+        is_variant: true
+      };
+    }).filter(Boolean);
   });
 
   const storeProducts = expandedProducts;
@@ -268,8 +354,9 @@ export default function POS() {
 
   const totals = calculateTotals();
   const selectedStoreData = stores.find(s => s.id === selectedStore);
+  const physicalStores = stores.filter(s => s.store_type === 'fisica' && s.is_active);
 
-  if (!selectedStore) {
+  if (physicalStores.length === 0) {
     return (
       <div className="p-6 lg:p-8 flex items-center justify-center min-h-screen">
         <Card className="max-w-md shadow-xl">
@@ -307,7 +394,7 @@ export default function POS() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {stores.filter(s => s.is_active).map(store => (
+                    {physicalStores.map(store => (
                       <SelectItem key={store.id} value={store.id}>
                         {store.name} - {store.city}
                       </SelectItem>

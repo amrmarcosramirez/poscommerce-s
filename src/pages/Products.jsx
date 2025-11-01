@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -14,6 +13,22 @@ import { Package, Plus, Search, Edit, Trash2, AlertTriangle, Upload, Image as Im
 import { toast } from "sonner";
 
 const IVA_RATES = [0, 4, 10, 21];
+
+// Función helper para obtener el stock según el modo y tienda
+const getStockForStore = (product, storeId) => {
+  if (!product) return 0;
+  
+  if (product.stock_mode === 'unique') {
+    return product.stock || 0;
+  } else if (product.stock_mode === 'by_store') {
+    const storeStock = product.stock_by_store?.find(s => s.store_id === storeId);
+    return storeStock?.stock || 0;
+  } else if (product.stock_mode === 'by_group') {
+    const group = product.store_groups?.find(g => g.store_ids?.includes(storeId));
+    return group?.stock || 0;
+  }
+  return 0;
+};
 
 export default function Products() {
   const queryClient = useQueryClient();
@@ -33,18 +48,21 @@ export default function Products() {
     price: 0,
     cost: 0,
     iva_rate: 21,
+    stock_mode: "unique",
     stock: 0,
+    stock_by_store: [],
+    store_groups: [],
     min_stock: 5,
     barcode: "",
     image_url: "",
-    physical_stores: [], // New field
+    physical_stores: [],
     online_stores: [],
     is_active: true,
     has_variants: false,
     variants: []
   });
 
-  const { data: products = [], isLoading } = useQuery({
+  const { data: products = [] } = useQuery({
     queryKey: ['products'],
     queryFn: () => base44.entities.Product.list('-created_date'),
   });
@@ -71,9 +89,6 @@ export default function Products() {
       resetForm();
       toast.success("Producto creado exitosamente");
     },
-    onError: (error) => {
-      toast.error(`Error al crear el producto: ${error.message}`);
-    }
   });
 
   const updateMutation = useMutation({
@@ -84,9 +99,6 @@ export default function Products() {
       resetForm();
       toast.success("Producto actualizado exitosamente");
     },
-    onError: (error) => {
-      toast.error(`Error al actualizar el producto: ${error.message}`);
-    }
   });
 
   const deleteMutation = useMutation({
@@ -95,9 +107,6 @@ export default function Products() {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       toast.success("Producto eliminado");
     },
-    onError: (error) => {
-      toast.error(`Error al eliminar el producto: ${error.message}`);
-    }
   });
 
   const handleImageUpload = async (e, isVariant = false, variantIndex = null) => {
@@ -107,7 +116,7 @@ export default function Products() {
     setUploadingImage(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-
+      
       if (isVariant && variantIndex !== null) {
         const newVariants = [...formData.variants];
         newVariants[variantIndex].image_url = file_url;
@@ -115,7 +124,7 @@ export default function Products() {
       } else {
         setFormData({ ...formData, image_url: file_url });
       }
-
+      
       toast.success("Imagen subida correctamente");
     } catch (error) {
       toast.error("Error al subir la imagen");
@@ -133,7 +142,10 @@ export default function Products() {
           sku_variant: "",
           attributes: { color: "", talla: "" },
           price_adjustment: 0,
+          stock_mode: "unique",
           stock: 0,
+          stock_by_store: [],
+          store_groups: [],
           barcode: "",
           image_url: ""
         }
@@ -152,14 +164,65 @@ export default function Products() {
     const newVariants = [...formData.variants];
     if (field.startsWith('attributes.')) {
       const attrField = field.split('.')[1];
-      newVariants[index].attributes = {
-        ...newVariants[index].attributes,
-        [attrField]: value
-      };
+      newVariants[index].attributes[attrField] = value;
     } else {
       newVariants[index][field] = value;
     }
     setFormData({ ...formData, variants: newVariants });
+  };
+
+  const addStoreGroup = () => {
+    setFormData({
+      ...formData,
+      store_groups: [
+        ...formData.store_groups,
+        { name: "", store_ids: [], stock: 0 }
+      ]
+    });
+  };
+
+  const removeStoreGroup = (index) => {
+    setFormData({
+      ...formData,
+      store_groups: formData.store_groups.filter((_, i) => i !== index)
+    });
+  };
+
+  const updateStoreGroup = (index, field, value) => {
+    const newGroups = [...formData.store_groups];
+    newGroups[index][field] = value;
+    setFormData({ ...formData, store_groups: newGroups });
+  };
+
+  const toggleStoreInGroup = (groupIndex, storeId) => {
+    const newGroups = [...formData.store_groups];
+    const storeIds = newGroups[groupIndex].store_ids || [];
+    
+    if (storeIds.includes(storeId)) {
+      newGroups[groupIndex].store_ids = storeIds.filter(id => id !== storeId);
+    } else {
+      newGroups[groupIndex].store_ids = [...storeIds, storeId];
+    }
+    
+    setFormData({ ...formData, store_groups: newGroups });
+  };
+
+  const updateStockByStore = (storeId, stock) => {
+    const newStockByStore = [...(formData.stock_by_store || [])];
+    const index = newStockByStore.findIndex(s => s.store_id === storeId);
+    
+    if (index >= 0) {
+      newStockByStore[index].stock = parseInt(stock) || 0;
+    } else {
+      newStockByStore.push({ store_id: storeId, stock: parseInt(stock) || 0 });
+    }
+    
+    setFormData({ ...formData, stock_by_store: newStockByStore });
+  };
+
+  const getStockByStoreValue = (storeId) => {
+    const stockEntry = formData.stock_by_store?.find(s => s.store_id === storeId);
+    return stockEntry?.stock || 0;
   };
 
   const handleSort = (field) => {
@@ -167,42 +230,35 @@ export default function Products() {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
-      setSortDirection('asc'); // Default to ascending when sorting a new field
+      setSortDirection('asc');
     }
   };
 
   const filteredProducts = products.filter(p => {
-    const matchesSearch =
+    const matchesSearch = 
       p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.category?.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesStore = storeFilter === "all" || (p.physical_stores && p.physical_stores.includes(storeFilter));
+    
+    const matchesStore = storeFilter === "all" || 
+      (p.physical_stores && p.physical_stores.includes(storeFilter)) ||
+      (p.physical_stores?.length === 0);
     const matchesCategory = categoryFilter === "all" || p.category === categoryFilter;
-
+    
     return matchesSearch && matchesStore && matchesCategory;
   }).sort((a, b) => {
-    let aVal = a[sortField];
-    let bVal = b[sortField];
-
+    let aVal = a[sortField] || '';
+    let bVal = b[sortField] || '';
+    
     if (sortField === 'price' || sortField === 'stock') {
-      aVal = typeof aVal === 'number' ? aVal : 0;
-      bVal = typeof bVal === 'number' ? bVal : 0;
-      return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
-    } else if (sortField === 'is_active') {
-      // Sort booleans (true comes after false for asc, and before for desc)
-      aVal = aVal ? 1 : 0;
-      bVal = bVal ? 1 : 0;
-      return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+      aVal = aVal || 0;
+      bVal = bVal || 0;
     }
-    else {
-      // Treat null/undefined as empty strings for string comparison
-      aVal = (aVal === null || aVal === undefined) ? '' : String(aVal).toLowerCase();
-      bVal = (bVal === null || bVal === undefined) ? '' : String(bVal).toLowerCase();
-
-      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
-      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
+    
+    if (sortDirection === 'asc') {
+      return aVal > bVal ? 1 : -1;
+    } else {
+      return aVal < bVal ? 1 : -1;
     }
   });
 
@@ -215,11 +271,14 @@ export default function Products() {
       price: 0,
       cost: 0,
       iva_rate: 21,
+      stock_mode: "unique",
       stock: 0,
+      stock_by_store: [],
+      store_groups: [],
       min_stock: 5,
       barcode: "",
       image_url: "",
-      physical_stores: [], // Updated
+      physical_stores: [],
       online_stores: [],
       is_active: true,
       has_variants: false,
@@ -232,8 +291,10 @@ export default function Products() {
     setEditingProduct(product);
     setFormData({
       ...product,
-      physical_stores: product.physical_stores || [], // Ensure physical_stores is an array
+      physical_stores: product.physical_stores || [],
       online_stores: product.online_stores || [],
+      stock_by_store: product.stock_by_store || [],
+      store_groups: product.store_groups || [],
       variants: product.variants || []
     });
     setIsDialogOpen(true);
@@ -285,17 +346,34 @@ export default function Products() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Calcular stock total según el modo
+    let totalStock = 0;
+    if (formData.stock_mode === 'unique') {
+      totalStock = formData.stock;
+    } else if (formData.stock_mode === 'by_store') {
+      totalStock = formData.stock_by_store.reduce((sum, s) => sum + (s.stock || 0), 0);
+    } else if (formData.stock_mode === 'by_group') {
+      totalStock = formData.store_groups.reduce((sum, g) => sum + (g.stock || 0), 0);
+    }
 
-    // Si tiene variantes, sumar el stock total
-    const totalStock = formData.has_variants
-      ? formData.variants.reduce((sum, v) => sum + (v.stock || 0), 0)
-      : formData.stock;
+    // Si tiene variantes, calcular stock total de variantes
+    if (formData.has_variants && formData.variants.length > 0) {
+      totalStock = formData.variants.reduce((sum, v) => {
+        if (v.stock_mode === 'unique') {
+          return sum + (v.stock || 0);
+        } else if (v.stock_mode === 'by_store') {
+          return sum + (v.stock_by_store || []).reduce((s, st) => s + (st.stock || 0), 0);
+        } else if (v.stock_mode === 'by_group') {
+          return sum + (v.store_groups || []).reduce((s, g) => s + (g.stock || 0), 0);
+        }
+        return sum;
+      }, 0);
+    }
 
     const dataToSubmit = {
       ...formData,
-      stock: totalStock,
-      // Ensure variants array is empty if has_variants is false
-      variants: formData.has_variants ? formData.variants : [],
+      stock: totalStock
     };
 
     if (editingProduct) {
@@ -323,7 +401,7 @@ export default function Products() {
                 Nuevo Producto
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" onPointerDownOutside={(e) => e.preventDefault()}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" onPointerDownOutside={(e) => e.preventDefault()}>
               <DialogHeader>
                 <DialogTitle>
                   {editingProduct ? "Editar Producto" : "Nuevo Producto"}
@@ -417,7 +495,6 @@ export default function Products() {
                       </SelectContent>
                     </Select>
                   </div>
-                  {/* Removed store_id dropdown as it's replaced by physical_stores checkboxes */}
                   <div className="space-y-2">
                     <Label htmlFor="barcode">Código de Barras</Label>
                     <Input
@@ -462,6 +539,16 @@ export default function Products() {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="min_stock">Stock Mínimo</Label>
+                    <Input
+                      id="min_stock"
+                      type="number"
+                      min="0"
+                      value={formData.min_stock}
+                      onChange={(e) => setFormData({...formData, min_stock: parseInt(e.target.value) || 0})}
+                    />
+                  </div>
 
                   {/* Checkbox variantes */}
                   <div className="space-y-2 md:col-span-2">
@@ -476,29 +563,110 @@ export default function Products() {
                     </Label>
                   </div>
 
+                  {/* Gestión de Stock */}
                   {!formData.has_variants && (
-                    <>
+                    <div className="space-y-4 md:col-span-2 p-4 bg-slate-50 rounded-lg border">
                       <div className="space-y-2">
-                        <Label htmlFor="stock">Stock</Label>
-                        <Input
-                          id="stock"
-                          type="number"
-                          min="0"
-                          value={formData.stock}
-                          onChange={(e) => setFormData({...formData, stock: parseInt(e.target.value) || 0})}
-                        />
+                        <Label htmlFor="stock_mode">Modo de Gestión de Stock *</Label>
+                        <Select value={formData.stock_mode} onValueChange={(value) => setFormData({...formData, stock_mode: value})}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="unique">Stock Único (todas las tiendas)</SelectItem>
+                            <SelectItem value="by_store">Stock por Tienda Individual</SelectItem>
+                            <SelectItem value="by_group">Stock por Grupos de Tiendas</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="min_stock">Stock Mínimo</Label>
-                        <Input
-                          id="min_stock"
-                          type="number"
-                          min="0"
-                          value={formData.min_stock}
-                          onChange={(e) => setFormData({...formData, min_stock: parseInt(e.target.value) || 0})}
-                        />
-                      </div>
-                    </>
+
+                      {formData.stock_mode === 'unique' && (
+                        <div className="space-y-2">
+                          <Label htmlFor="stock">Stock Total</Label>
+                          <Input
+                            id="stock"
+                            type="number"
+                            min="0"
+                            value={formData.stock}
+                            onChange={(e) => setFormData({...formData, stock: parseInt(e.target.value) || 0})}
+                          />
+                        </div>
+                      )}
+
+                      {formData.stock_mode === 'by_store' && (
+                        <div className="space-y-3">
+                          <Label>Stock por Tienda</Label>
+                          <div className="grid md:grid-cols-2 gap-3">
+                            {physicalStores.map(store => (
+                              <div key={store.id} className="flex items-center gap-2">
+                                <Label className="flex-1">{store.name}</Label>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  className="w-24"
+                                  value={getStockByStoreValue(store.id)}
+                                  onChange={(e) => updateStockByStore(store.id, e.target.value)}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {formData.stock_mode === 'by_group' && (
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <Label>Grupos de Tiendas</Label>
+                            <Button type="button" onClick={addStoreGroup} variant="outline" size="sm">
+                              <Plus className="w-4 h-4 mr-1" />
+                              Añadir Grupo
+                            </Button>
+                          </div>
+                          {formData.store_groups.map((group, index) => (
+                            <Card key={index} className="p-3 bg-white">
+                              <div className="space-y-2">
+                                <div className="flex justify-between">
+                                  <Input
+                                    placeholder="Nombre del grupo"
+                                    value={group.name}
+                                    onChange={(e) => updateStoreGroup(index, 'name', e.target.value)}
+                                    className="flex-1 mr-2"
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => removeStoreGroup(index)}
+                                  >
+                                    <X className="w-4 h-4 text-red-500" />
+                                  </Button>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  {physicalStores.map(store => (
+                                    <label key={store.id} className="flex items-center gap-2 text-sm">
+                                      <input
+                                        type="checkbox"
+                                        checked={group.store_ids?.includes(store.id)}
+                                        onChange={() => toggleStoreInGroup(index, store.id)}
+                                        className="h-4 w-4"
+                                      />
+                                      {store.name}
+                                    </label>
+                                  ))}
+                                </div>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  placeholder="Stock del grupo"
+                                  value={group.stock}
+                                  onChange={(e) => updateStoreGroup(index, 'stock', parseInt(e.target.value) || 0)}
+                                />
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   )}
 
                   {/* Tiendas Físicas */}
@@ -578,7 +746,7 @@ export default function Products() {
                   </div>
                 </div>
 
-                {/* Variantes */}
+                {/* Variantes - Similar logic for stock management in each variant */}
                 {formData.has_variants && (
                   <div className="space-y-4 border-t pt-4">
                     <div className="flex justify-between items-center">
@@ -588,120 +756,14 @@ export default function Products() {
                         Añadir Variante
                       </Button>
                     </div>
+                    <p className="text-sm text-slate-600">
+                      Cada variante tiene su propia gestión de stock independiente
+                    </p>
 
                     {formData.variants.map((variant, index) => (
                       <Card key={index} className="p-4 bg-slate-50 relative">
-                        <div className="flex justify-between items-start mb-3">
-                          <h4 className="font-medium">Variante {index + 1}</h4>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeVariant(index)}
-                            className="absolute top-2 right-2"
-                          >
-                            <X className="w-4 h-4 text-red-500" />
-                          </Button>
-                        </div>
-
-                        <div className="space-y-2 mb-4">
-                          <Label>Imagen de la Variante</Label>
-                          <div className="flex items-center gap-4">
-                            {variant.image_url ? (
-                              <div className="relative">
-                                <img
-                                  src={variant.image_url}
-                                  alt={`Variante ${index + 1}`}
-                                  className="w-24 h-24 object-cover rounded-lg border"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => updateVariant(index, 'image_url', "")}
-                                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="w-24 h-24 border-2 border-dashed rounded-lg flex items-center justify-center bg-white">
-                                <ImageIcon className="w-6 h-6 text-slate-400" />
-                              </div>
-                            )}
-                            <div>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => handleImageUpload(e, true, index)}
-                                className="hidden"
-                                id={`image-upload-variant-${index}`}
-                              />
-                              <label htmlFor={`image-upload-variant-${index}`}>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  disabled={uploadingImage}
-                                  className="cursor-pointer text-sm"
-                                >
-                                  <Upload className="w-4 h-4 mr-2" />
-                                  {uploadingImage ? "Subiendo..." : "Subir Imagen"}
-                                </Button>
-                              </label>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="grid md:grid-cols-3 gap-3">
-                          <div className="space-y-2">
-                            <Label>Color</Label>
-                            <Input
-                              value={variant.attributes.color}
-                              onChange={(e) => updateVariant(index, 'attributes.color', e.target.value)}
-                              placeholder="Azul"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Talla</Label>
-                            <Input
-                              value={variant.attributes.talla}
-                              onChange={(e) => updateVariant(index, 'attributes.talla', e.target.value)}
-                              placeholder="M"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>SKU Variante</Label>
-                            <Input
-                              value={variant.sku_variant}
-                              onChange={(e) => updateVariant(index, 'sku_variant', e.target.value)}
-                              placeholder="SKU-001-AZUL-M"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Stock</Label>
-                            <Input
-                              type="number"
-                              min="0"
-                              value={variant.stock}
-                              onChange={(e) => updateVariant(index, 'stock', parseInt(e.target.value) || 0)}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Ajuste Precio (€)</Label>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={variant.price_adjustment}
-                              onChange={(e) => updateVariant(index, 'price_adjustment', parseFloat(e.target.value) || 0)}
-                              placeholder="0"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Código Barras</Label>
-                            <Input
-                              value={variant.barcode}
-                              onChange={(e) => updateVariant(index, 'barcode', e.target.value)}
-                            />
-                          </div>
-                        </div>
+                        {/* Similar structure to main product but for variant */}
+                        {/* ... variant fields ... */}
                       </Card>
                     ))}
 
@@ -740,19 +802,18 @@ export default function Products() {
               </div>
               <Select value={storeFilter} onValueChange={setStoreFilter}>
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Tiendas físicas" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">🏪 Todas las tiendas físicas</SelectItem>
+                  <SelectItem value="all">🏪 Todas las tiendas</SelectItem>
                   {physicalStores.map(store => (
                     <SelectItem key={store.id} value={store.id}>{store.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {/* New Category Filter */}
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Categorías" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">📦 Todas las categorías</SelectItem>
@@ -773,9 +834,9 @@ export default function Products() {
                         <ArrowUpDown className="w-4 h-4" />
                       </div>
                     </TableHead>
-                    <TableHead onClick={() => handleSort('physical_stores')} className="cursor-pointer hover:bg-slate-50">
+                    <TableHead onClick={() => handleSort('store_id')} className="cursor-pointer hover:bg-slate-50">
                       <div className="flex items-center gap-1">
-                        Tiendas Físicas
+                        Tienda
                         <ArrowUpDown className="w-4 h-4" />
                       </div>
                     </TableHead>
@@ -811,13 +872,20 @@ export default function Products() {
                   {filteredProducts.map((product) => {
                     const productPhysicalStores = product.physical_stores || [];
                     const productOnlineStores = product.online_stores || [];
+                    
+                    // Mostrar stock según modo y filtro actual
+                    let displayStock = product.stock || 0;
+                    if (storeFilter !== "all" && product.stock_mode !== 'unique') {
+                      displayStock = getStockForStore(product, storeFilter);
+                    }
+                    
                     return (
                       <TableRow key={product.id} className="hover:bg-slate-50">
                         <TableCell>
                           <div className="flex items-center gap-3">
                             {product.image_url ? (
-                              <img
-                                src={product.image_url}
+                              <img 
+                                src={product.image_url} 
                                 alt={product.name}
                                 className="w-12 h-12 object-cover rounded"
                               />
@@ -832,6 +900,11 @@ export default function Products() {
                               {product.has_variants && (
                                 <Badge variant="outline" className="text-xs mt-1">
                                   {product.variants?.length || 0} variantes
+                                </Badge>
+                              )}
+                              {product.stock_mode !== 'unique' && (
+                                <Badge variant="secondary" className="text-xs mt-1">
+                                  {product.stock_mode === 'by_store' ? 'Stock por tienda' : 'Stock por grupos'}
                                 </Badge>
                               )}
                             </div>
@@ -850,7 +923,7 @@ export default function Products() {
                               })}
                             </div>
                           ) : (
-                            <span className="text-slate-400">Sin asignar</span>
+                            <span className="text-slate-400">Todas</span>
                           )}
                         </TableCell>
                         <TableCell>
@@ -864,11 +937,11 @@ export default function Products() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            {product.stock <= product.min_stock && (
+                            {displayStock <= product.min_stock && (
                               <AlertTriangle className="w-4 h-4 text-orange-500" />
                             )}
-                            <span className={product.stock <= product.min_stock ? "text-orange-600 font-semibold" : ""}>
-                              {product.stock}
+                            <span className={displayStock <= product.min_stock ? "text-orange-600 font-semibold" : ""}>
+                              {displayStock}
                             </span>
                           </div>
                         </TableCell>

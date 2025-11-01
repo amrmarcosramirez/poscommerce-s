@@ -29,7 +29,7 @@ export default function Products() {
     name: "",
     sku: "",
     description: "",
-    category: "", // Changed from "Otros" to empty string
+    category: "",
     price: 0,
     cost: 0,
     iva_rate: 21,
@@ -37,8 +37,8 @@ export default function Products() {
     min_stock: 5,
     barcode: "",
     image_url: "",
-    store_id: "",
-    online_stores: [], // New field
+    physical_stores: [], // New field
+    online_stores: [],
     is_active: true,
     has_variants: false,
     variants: []
@@ -54,13 +54,13 @@ export default function Products() {
     queryFn: () => base44.entities.Store.list(),
   });
 
-  // New query for categories
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
     queryFn: () => base44.entities.Category.list('name'),
   });
 
   const activeCategories = categories.filter(c => c.is_active);
+  const physicalStores = stores.filter(s => s.store_type === 'fisica' && s.is_active);
   const onlineStores = stores.filter(s => s.store_type === 'online' && s.is_active);
 
   const createMutation = useMutation({
@@ -177,7 +177,7 @@ export default function Products() {
       p.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.category?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStore = storeFilter === "all" || p.store_id === storeFilter || !p.store_id;
+    const matchesStore = storeFilter === "all" || (p.physical_stores && p.physical_stores.includes(storeFilter));
     const matchesCategory = categoryFilter === "all" || p.category === categoryFilter;
 
     return matchesSearch && matchesStore && matchesCategory;
@@ -211,7 +211,7 @@ export default function Products() {
       name: "",
       sku: "",
       description: "",
-      category: "", // Changed
+      category: "",
       price: 0,
       cost: 0,
       iva_rate: 21,
@@ -219,8 +219,8 @@ export default function Products() {
       min_stock: 5,
       barcode: "",
       image_url: "",
-      store_id: "",
-      online_stores: [], // New field
+      physical_stores: [], // Updated
+      online_stores: [],
       is_active: true,
       has_variants: false,
       variants: []
@@ -232,10 +232,33 @@ export default function Products() {
     setEditingProduct(product);
     setFormData({
       ...product,
-      online_stores: product.online_stores || [], // Ensure online_stores is an array
+      physical_stores: product.physical_stores || [], // Ensure physical_stores is an array
+      online_stores: product.online_stores || [],
       variants: product.variants || []
     });
     setIsDialogOpen(true);
+  };
+
+  const togglePhysicalStore = (storeId) => {
+    if (formData.physical_stores.includes(storeId)) {
+      setFormData({
+        ...formData,
+        physical_stores: formData.physical_stores.filter(id => id !== storeId)
+      });
+    } else {
+      setFormData({
+        ...formData,
+        physical_stores: [...formData.physical_stores, storeId]
+      });
+    }
+  };
+
+  const toggleAllPhysicalStores = () => {
+    if (formData.physical_stores.length === physicalStores.length) {
+      setFormData({ ...formData, physical_stores: [] });
+    } else {
+      setFormData({ ...formData, physical_stores: physicalStores.map(s => s.id) });
+    }
   };
 
   const toggleOnlineStore = (storeId) => {
@@ -252,6 +275,14 @@ export default function Products() {
     }
   };
 
+  const toggleAllOnlineStores = () => {
+    if (formData.online_stores.length === onlineStores.length) {
+      setFormData({ ...formData, online_stores: [] });
+    } else {
+      setFormData({ ...formData, online_stores: onlineStores.map(s => s.id) });
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -265,9 +296,6 @@ export default function Products() {
       stock: totalStock,
       // Ensure variants array is empty if has_variants is false
       variants: formData.has_variants ? formData.variants : [],
-      // Remove show_in_ecommerce as it's replaced by online_stores
-      // No need to explicitly remove if it's not in formData, but good for clarity if it was
-      // const { show_in_ecommerce, ...rest } = formData; (alternative, but current formData structure doesn't have it)
     };
 
     if (editingProduct) {
@@ -389,20 +417,7 @@ export default function Products() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="store_id">Tienda</Label>
-                    <Select value={formData.store_id || ""} onValueChange={(value) => setFormData({...formData, store_id: value})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Todas las tiendas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={null}>Todas las tiendas</SelectItem>
-                        {stores.map(store => (
-                          <SelectItem key={store.id} value={store.id}>{store.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {/* Removed store_id dropdown as it's replaced by physical_stores checkboxes */}
                   <div className="space-y-2">
                     <Label htmlFor="barcode">Código de Barras</Label>
                     <Input
@@ -486,9 +501,51 @@ export default function Products() {
                     </>
                   )}
 
+                  {/* Tiendas Físicas */}
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>🏪 Disponible en Tiendas Físicas</Label>
+                    <div className="mb-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={toggleAllPhysicalStores}
+                      >
+                        {formData.physical_stores.length === physicalStores.length ? 'Desmarcar todas' : 'Seleccionar todas'}
+                      </Button>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-2">
+                      {physicalStores.length === 0 ? (
+                        <p className="text-sm text-slate-500 col-span-2">No hay tiendas físicas configuradas</p>
+                      ) : (
+                        physicalStores.map(store => (
+                          <label key={store.id} className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-slate-50">
+                            <input
+                              type="checkbox"
+                              checked={formData.physical_stores.includes(store.id)}
+                              onChange={() => togglePhysicalStore(store.id)}
+                              className="h-4 w-4"
+                            />
+                            <span className="text-sm">{store.name}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
                   {/* Tiendas Online */}
                   <div className="space-y-2 md:col-span-2">
                     <Label>🌐 Mostrar en Tiendas Online</Label>
+                    <div className="mb-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={toggleAllOnlineStores}
+                      >
+                        {formData.online_stores.length === onlineStores.length ? 'Desmarcar todas' : 'Seleccionar todas'}
+                      </Button>
+                    </div>
                     <div className="grid md:grid-cols-2 gap-2">
                       {onlineStores.length === 0 ? (
                         <p className="text-sm text-slate-500 col-span-2">No hay tiendas online configuradas</p>
@@ -683,11 +740,11 @@ export default function Products() {
               </div>
               <Select value={storeFilter} onValueChange={setStoreFilter}>
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue />
+                  <SelectValue placeholder="Tiendas físicas" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">🏪 Todas las tiendas</SelectItem>
-                  {stores.map(store => (
+                  <SelectItem value="all">🏪 Todas las tiendas físicas</SelectItem>
+                  {physicalStores.map(store => (
                     <SelectItem key={store.id} value={store.id}>{store.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -695,7 +752,7 @@ export default function Products() {
               {/* New Category Filter */}
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue />
+                  <SelectValue placeholder="Categorías" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">📦 Todas las categorías</SelectItem>
@@ -716,9 +773,9 @@ export default function Products() {
                         <ArrowUpDown className="w-4 h-4" />
                       </div>
                     </TableHead>
-                    <TableHead onClick={() => handleSort('store_id')} className="cursor-pointer hover:bg-slate-50">
+                    <TableHead onClick={() => handleSort('physical_stores')} className="cursor-pointer hover:bg-slate-50">
                       <div className="flex items-center gap-1">
-                        Tienda
+                        Tiendas Físicas
                         <ArrowUpDown className="w-4 h-4" />
                       </div>
                     </TableHead>
@@ -746,13 +803,13 @@ export default function Products() {
                         <ArrowUpDown className="w-4 h-4" />
                       </div>
                     </TableHead>
-                    <TableHead>eCommerce</TableHead> {/* Updated TableHead */}
+                    <TableHead>eCommerce</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredProducts.map((product) => {
-                    const store = stores.find(s => s.id === product.store_id);
+                    const productPhysicalStores = product.physical_stores || [];
                     const productOnlineStores = product.online_stores || [];
                     return (
                       <TableRow key={product.id} className="hover:bg-slate-50">
@@ -781,7 +838,20 @@ export default function Products() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {store ? store.name : "Todas"}
+                          {productPhysicalStores.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {productPhysicalStores.map(storeId => {
+                                const store = stores.find(s => s.id === storeId);
+                                return store ? (
+                                  <Badge key={storeId} variant="outline" className="text-xs">
+                                    {store.name}
+                                  </Badge>
+                                ) : null;
+                              })}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">Sin asignar</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">{product.category}</Badge>
@@ -807,7 +877,6 @@ export default function Products() {
                             {product.is_active ? "Activo" : "Inactivo"}
                           </Badge>
                         </TableCell>
-                        {/* New eCommerce cell */}
                         <TableCell>
                           {productOnlineStores.length > 0 ? (
                             <div className="flex flex-wrap gap-1">

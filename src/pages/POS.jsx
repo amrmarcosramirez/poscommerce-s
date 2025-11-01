@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -125,6 +126,15 @@ export default function POS() {
 
   // Expandir productos con variantes
   const expandedProducts = products.flatMap(product => {
+    // Filtrar por tiendas físicas
+    const productPhysicalStores = product.physical_stores || [];
+    const isInSelectedStore = productPhysicalStores.length === 0 || 
+                              productPhysicalStores.includes(selectedStore);
+    
+    if (!isInSelectedStore || !product.is_active || product.stock <= 0) {
+      return [];
+    }
+    
     if (!product.has_variants || !product.variants || product.variants.length === 0) {
       return [product];
     }
@@ -143,11 +153,7 @@ export default function POS() {
     }));
   });
 
-  const storeProducts = expandedProducts.filter(p => 
-    (!p.store_id || p.store_id === selectedStore) && 
-    p.is_active && 
-    p.stock > 0
-  );
+  const storeProducts = expandedProducts;
   
   const filteredProducts = storeProducts.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -347,7 +353,7 @@ export default function POS() {
                           />
                         )}
                         <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-semibold text-slate-900 line-clamp-2 text-sm">{product.name}</h3>
+                          <h3 className="font-semibold text-sm text-slate-900 line-clamp-2">{product.name}</h3>
                           {product.stock <= (product.min_stock || 5) && (
                             <Badge variant="destructive" className="text-xs">Bajo</Badge>
                           )}

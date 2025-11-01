@@ -27,7 +27,8 @@ export default function ECommerce() {
     address: "",
     city: "",
     postal_code: "",
-    notes: ""
+    notes: "",
+    payment_method: "redsys"
   });
 
   const { data: products = [] } = useQuery({
@@ -92,7 +93,7 @@ export default function ECommerce() {
         base_imponible: totals.subtotal, // Use totals from current calculation
         total_iva: totals.ivaAmount, // Use totals from current calculation
         total: totals.total, // Use totals from current calculation
-        payment_method: "online",
+        payment_method: orderData.payment_method, // Use selected payment method
         status: "emitida"
       });
       
@@ -111,7 +112,8 @@ export default function ECommerce() {
         address: "",
         city: "",
         postal_code: "",
-        notes: ""
+        notes: "",
+        payment_method: "redsys"
       });
       toast.success("✅ Pedido realizado con éxito. Recibirás un email de confirmación.");
     },
@@ -260,7 +262,7 @@ export default function ECommerce() {
       total_iva: totals.ivaAmount,
       discount: 0,
       total: totals.total,
-      payment_method: "online",
+      payment_method: customerData.payment_method,
       status: "pendiente",
       channel: "ecommerce",
       notes: customerData.notes,
@@ -587,6 +589,29 @@ export default function ECommerce() {
                   />
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="payment_method">Método de Pago *</Label>
+                  <Select value={customerData.payment_method} onValueChange={(value) => setCustomerData({...customerData, payment_method: value})} required>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="redsys">💳 Tarjeta (Redsys)</SelectItem>
+                      <SelectItem value="stripe">💳 Tarjeta (Stripe)</SelectItem>
+                      <SelectItem value="bizum">📱 Bizum</SelectItem>
+                      <SelectItem value="transferencia">🏦 Transferencia</SelectItem>
+                      <SelectItem value="contrareembolso">💵 Contrareembolso</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-slate-500">
+                    {customerData.payment_method === 'redsys' && '⚠️ Integración con Redsys (simulado)'}
+                    {customerData.payment_method === 'stripe' && '⚠️ Integración con Stripe (simulado)'}
+                    {customerData.payment_method === 'bizum' && '⚠️ Integración con Bizum (simulado)'}
+                    {customerData.payment_method === 'transferencia' && 'Recibirás los datos bancarios por email'}
+                    {customerData.payment_method === 'contrareembolso' && 'Pago al recibir el pedido'}
+                  </p>
+                </div>
+
                 <Button 
                   type="submit" 
                   className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 py-6"
@@ -601,6 +626,12 @@ export default function ECommerce() {
                     </>
                   )}
                 </Button>
+                
+                {customerData.payment_method !== 'contrareembolso' && customerData.payment_method !== 'transferencia' && (
+                  <p className="text-xs text-center text-slate-500 mt-2">
+                    🔒 Al confirmar, serás redirigido a la pasarela de pago segura
+                  </p>
+                )}
               </form>
             </div>
           </DialogContent>

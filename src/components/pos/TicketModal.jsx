@@ -15,10 +15,17 @@ export default function TicketModal({ sale, store, onClose }) {
   if (!sale) return null;
 
   return (
-    <Dialog open={!!sale} onOpenChange={() => {}}>
+    <Dialog open={!!sale} onOpenChange={onClose}>
       <DialogContent className="max-w-sm p-0" onPointerDownOutside={(e) => e.preventDefault()}>
-        <DialogHeader className="p-4 pb-2">
+        <DialogHeader className="p-4 pb-2 flex flex-row items-center justify-between">
           <DialogTitle className="text-lg">Ticket de Venta</DialogTitle>
+          <button
+            onClick={onClose}
+            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Cerrar</span>
+          </button>
         </DialogHeader>
 
         {/* Ticket */}
@@ -85,38 +92,12 @@ export default function TicketModal({ sale, store, onClose }) {
               </div>
             )}
             <div className="flex justify-between">
-              <span>IVA:</span>
+              <span>IVA ({sale.items?.[0]?.iva_rate || 21}%):</span>
               <span>{sale.total_iva?.toFixed(2)}€</span>
             </div>
             <div className="flex justify-between text-base font-bold pt-1 border-t">
               <span>TOTAL:</span>
               <span>{sale.total?.toFixed(2)}€</span>
-            </div>
-          </div>
-
-          {/* Desglose IVA */}
-          <div className="border-t border-dashed pt-2 mb-2 text-xs">
-            <p className="font-bold mb-1">Desglose IVA:</p>
-            <div className="space-y-0.5 text-xs">
-              {(() => {
-                const ivaBreakdown = {};
-                sale.items?.forEach(item => {
-                  if (!ivaBreakdown[item.iva_rate]) {
-                    ivaBreakdown[item.iva_rate] = { base: 0, iva: 0 };
-                  }
-                  const itemBase = item.subtotal / (1 + sale.discount / 100);
-                  const itemIva = itemBase * item.iva_rate / 100;
-                  ivaBreakdown[item.iva_rate].base += itemBase;
-                  ivaBreakdown[item.iva_rate].iva += itemIva;
-                });
-                
-                return Object.entries(ivaBreakdown).map(([rate, values]) => (
-                  <div key={rate} className="flex justify-between">
-                    <span>IVA {rate}%:</span>
-                    <span>{values.base.toFixed(2)}€ + {values.iva.toFixed(2)}€</span>
-                  </div>
-                ));
-              })()}
             </div>
           </div>
 

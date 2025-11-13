@@ -8,6 +8,8 @@ import Stores from './pages/Stores';
 import eCommerce from './pages/eCommerce';
 import eCommerceInfo from './pages/eCommerceInfo';
 import Categories from './pages/Categories';
+import Reports from './pages/Reports';
+import Loyalty from './pages/Loyalty';
 import Layout from './Layout.jsx';
 
 
@@ -22,6 +24,8 @@ export const PAGES = {
     "eCommerce": eCommerce,
     "eCommerceInfo": eCommerceInfo,
     "Categories": Categories,
+    "Reports": Reports,
+    "Loyalty": Loyalty,
 }
 
 export const pagesConfig = {

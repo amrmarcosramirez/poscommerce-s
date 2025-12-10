@@ -14,6 +14,14 @@ import LowStockAlert from "../components/dashboard/LowStockAlert";
 import TopProducts from "../components/dashboard/TopProducts";
 
 export default function Dashboard() {
+  const { data: config } = useQuery({
+    queryKey: ['businessConfig'],
+    queryFn: async () => {
+      const configs = await base44.entities.BusinessConfig.list();
+      return configs[0] || null;
+    },
+  });
+
   const { data: sales = [], isLoading: loadingSales } = useQuery({
     queryKey: ['sales'],
     queryFn: () => base44.entities.Sale.list('-sale_date', 100),
@@ -28,6 +36,13 @@ export default function Dashboard() {
     queryKey: ['customers'],
     queryFn: () => base44.entities.Customer.list(),
   });
+
+  // Redirigir al onboarding si no está configurado
+  React.useEffect(() => {
+    if (config && !config.onboarding_completed) {
+      window.location.href = createPageUrl("Onboarding");
+    }
+  }, [config]);
 
   // Calcular métricas
   const thisMonthSales = sales.filter(sale => {
@@ -49,6 +64,17 @@ export default function Dashboard() {
     : 0;
 
   const lowStockProducts = products.filter(p => p.stock <= p.min_stock && p.is_active);
+
+  if (!config) {
+    return (
+      <div className="p-6 lg:p-8 flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Cargando configuración...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 lg:p-8 space-y-6">

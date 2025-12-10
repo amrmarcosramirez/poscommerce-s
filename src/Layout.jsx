@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { LayoutDashboard, ShoppingCart, Package, Users, FileText, Settings, Store, TrendingUp, Globe, Info, Folder, Award, BarChart3 } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, Users, FileText, Settings as SettingsIcon, Store, TrendingUp, Globe, Info, Folder, Award, BarChart3 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -74,17 +74,27 @@ const navigationItems = [
     url: createPageUrl("Stores"),
     icon: Store,
   },
+  {
+    title: "Configuración",
+    url: createPageUrl("Settings"),
+    icon: SettingsIcon,
+  },
 ];
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const [user, setUser] = React.useState(null);
+  const [config, setConfig] = React.useState(null);
 
   React.useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
+    base44.entities.BusinessConfig.list().then(configs => {
+      if (configs.length > 0) setConfig(configs[0]);
+    }).catch(() => {});
   }, []);
 
-  const businessName = user?.business_name || "POSCommerce";
+  const businessName = config?.business_name || "POSCommerce";
+  const businessLogo = config?.logo_url;
 
   return (
     <SidebarProvider>
@@ -102,9 +112,13 @@ export default function Layout({ children, currentPageName }) {
         <Sidebar className="border-r-0 shadow-xl" style={{ backgroundColor: 'hsl(var(--sidebar-background))' }}>
           <SidebarHeader className="border-b border-white/10 p-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
-                <Store className="w-6 h-6 text-white" />
-              </div>
+              {businessLogo ? (
+                <img src={businessLogo} alt="Logo" className="w-10 h-10 object-contain rounded-xl" />
+              ) : (
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
+                  <Store className="w-6 h-6 text-white" />
+                </div>
+              )}
               <div>
                 <h2 className="font-bold text-lg text-white">{businessName}</h2>
                 <p className="text-xs text-slate-400">Sistema POS + eCommerce</p>

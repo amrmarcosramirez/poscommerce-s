@@ -10,7 +10,9 @@ import eCommerceInfo from './pages/eCommerceInfo';
 import Categories from './pages/Categories';
 import Reports from './pages/Reports';
 import Loyalty from './pages/Loyalty';
-import Layout from './Layout.jsx';
+import Onboarding from './pages/Onboarding';
+import Settings from './pages/Settings';
+import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
@@ -26,10 +28,12 @@ export const PAGES = {
     "Categories": Categories,
     "Reports": Reports,
     "Loyalty": Loyalty,
+    "Onboarding": Onboarding,
+    "Settings": Settings,
 }
 
 export const pagesConfig = {
     mainPage: "Dashboard",
     Pages: PAGES,
-    Layout: Layout,
+    Layout: __Layout,
 };

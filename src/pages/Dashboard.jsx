@@ -39,10 +39,10 @@ export default function Dashboard() {
 
   // Redirigir al onboarding si no está configurado
   React.useEffect(() => {
-    if (config && !config.onboarding_completed) {
+    if (!loadingConfig && (!config || !config.onboarding_completed)) {
       window.location.href = createPageUrl("Onboarding");
     }
-  }, [config]);
+  }, [config, loadingConfig]);
 
   // Calcular métricas
   const thisMonthSales = sales.filter(sale => {
@@ -65,7 +65,7 @@ export default function Dashboard() {
 
   const lowStockProducts = products.filter(p => p.stock <= p.min_stock && p.is_active);
 
-  if (!config) {
+  if (loadingConfig || !config) {
     return (
       <div className="p-6 lg:p-8 flex items-center justify-center min-h-screen">
         <div className="text-center">

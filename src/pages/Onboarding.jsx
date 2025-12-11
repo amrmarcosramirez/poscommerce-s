@@ -65,16 +65,21 @@ export default function Onboarding() {
 
   const createConfigMutation = useMutation({
     mutationFn: async (data) => {
+      const trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + 14); // 14 días de prueba
+
       const config = await base44.entities.BusinessConfig.create({
         ...data,
         plan_limits: PLANS[data.plan].limits,
-        onboarding_completed: true
+        onboarding_completed: true,
+        trial_ends_at: trialEndsAt.toISOString(),
+        subscription_status: "trial"
       });
       return config;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['businessConfig'] });
-      toast.success("¡Configuración completada!");
+      toast.success("¡Configuración completada! 🎉 Tienes 14 días de prueba gratis");
       setTimeout(() => {
         window.location.href = createPageUrl("Dashboard");
       }, 1500);

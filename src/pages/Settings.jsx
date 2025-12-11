@@ -12,9 +12,8 @@ import { Settings as SettingsIcon, Building2, CreditCard, Plug, Upload, Image as
 import { toast } from "sonner";
 
 const PLANS = {
-  basico: { name: "Plan Básico", price: "29€/mes", color: "bg-blue-100 text-blue-800" },
-  estandar: { name: "Plan Estándar", price: "79€/mes", color: "bg-purple-100 text-purple-800" },
-  premium: { name: "Plan Premium", price: "149€/mes", color: "bg-green-100 text-green-800" }
+  basico: { name: "Plan Básico", price: "19€/mes", color: "bg-blue-100 text-blue-800" },
+  profesional: { name: "Plan Profesional", price: "49€/mes", color: "bg-purple-100 text-purple-800" }
 };
 
 const INTEGRATION_TYPES = {

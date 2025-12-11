@@ -88,6 +88,12 @@ export default function Stores() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Verificar límites del plan solo al crear (no al editar)
+    if (!editingStore && !checkLimit('stores', stores.length)) {
+      return;
+    }
+    
     if (editingStore) {
       updateMutation.mutate({ id: editingStore.id, data: formData });
     } else {

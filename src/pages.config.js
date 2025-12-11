@@ -15,6 +15,7 @@ import Settings from './pages/Settings';
 import Landing from './pages/Landing';
 import TrialExpired from './pages/TrialExpired';
 import Billing from './pages/Billing';
+import TeamMembers from './pages/TeamMembers';
 import __Layout from './Layout.jsx';
 
 
@@ -36,10 +37,11 @@ export const PAGES = {
     "Landing": Landing,
     "TrialExpired": TrialExpired,
     "Billing": Billing,
+    "TeamMembers": TeamMembers,
 }
 
 export const pagesConfig = {
-    mainPage: "Landing",
+    mainPage: "Dashboard",
     Pages: PAGES,
     Layout: __Layout,
 };

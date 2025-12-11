@@ -55,6 +55,11 @@ const navigationItems = [
     icon: Users,
   },
   {
+    title: "Equipo",
+    url: createPageUrl("TeamMembers"),
+    icon: Users,
+  },
+  {
     title: "Fidelización",
     url: createPageUrl("Loyalty"),
     icon: Award,

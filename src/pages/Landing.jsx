@@ -96,29 +96,17 @@ const features = [
 ];
 
 export default function Landing() {
-  const [isAuthenticated, setIsAuthenticated] = React.useState(null);
-
-  React.useEffect(() => {
+  const handleGetStarted = () => {
     base44.auth.isAuthenticated().then(auth => {
-      setIsAuthenticated(auth);
       if (auth) {
-        // Si ya está autenticado, redirigir al dashboard
+        // Si ya está autenticado, ir al dashboard
         window.location.href = createPageUrl("Dashboard");
+      } else {
+        // Si no está autenticado, redirigir a login y luego a onboarding
+        base44.auth.redirectToLogin(createPageUrl("Onboarding"));
       }
     });
-  }, []);
-
-  const handleGetStarted = () => {
-    base44.auth.redirectToLogin(createPageUrl("Onboarding"));
   };
-
-  if (isAuthenticated === null) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50">

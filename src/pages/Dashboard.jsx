@@ -38,22 +38,25 @@ export default function Dashboard() {
     queryFn: () => base44.entities.Customer.list(),
   });
 
-  // Redirigir al onboarding si no está configurado
+  // Verificar estado del usuario y redirigir según corresponda
   React.useEffect(() => {
-    if (!loadingConfig && (!config || !config.onboarding_completed)) {
-      window.location.href = createPageUrl("Onboarding");
-    }
-  }, [config, loadingConfig]);
+    if (loadingConfig) return;
 
-  // Verificar si el trial ha expirado
-  React.useEffect(() => {
-    if (config && config.subscription_status === "trial" && config.trial_ends_at) {
+    // Si no hay config o no completó onboarding, redirigir a onboarding
+    if (!config || !config.onboarding_completed) {
+      window.location.href = createPageUrl("Onboarding");
+      return;
+    }
+
+    // Si el trial ha expirado, redirigir a TrialExpired
+    if (config.subscription_status === "trial" && config.trial_ends_at) {
       const trialEnded = new Date(config.trial_ends_at) < new Date();
       if (trialEnded) {
         window.location.href = createPageUrl("TrialExpired");
+        return;
       }
     }
-  }, [config]);
+  }, [config, loadingConfig]);
 
   // Calcular métricas
   const thisMonthSales = sales.filter(sale => {

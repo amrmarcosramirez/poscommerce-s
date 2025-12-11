@@ -81,7 +81,7 @@ const navigationItems = [
   },
 ];
 
-const PAGES_WITHOUT_LAYOUT = ["Landing", "TrialExpired"];
+const PAGES_WITHOUT_LAYOUT = ["Landing", "TrialExpired", "Onboarding"];
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();

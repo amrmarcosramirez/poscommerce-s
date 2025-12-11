@@ -14,7 +14,7 @@ import LowStockAlert from "../components/dashboard/LowStockAlert";
 import TopProducts from "../components/dashboard/TopProducts";
 
 export default function Dashboard() {
-  const { data: config } = useQuery({
+  const { data: config, isLoading: loadingConfig } = useQuery({
     queryKey: ['businessConfig'],
     queryFn: async () => {
       const configs = await base44.entities.BusinessConfig.list();

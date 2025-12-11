@@ -13,36 +13,25 @@ import { createPageUrl } from "@/utils";
 const PLANS = {
   basico: {
     name: "Plan Básico",
-    price: "29€/mes",
+    price: "19€/mes",
     limits: {
       max_stores: 1,
-      max_products: 100,
+      max_products: 500,
       max_users: 2,
-      features: ["pos", "ecommerce", "basic_reports"]
+      features: ["pos", "basic_reports", "invoicing"]
     },
     description: "Perfecto para empezar"
   },
-  estandar: {
-    name: "Plan Estándar",
-    price: "79€/mes",
-    limits: {
-      max_stores: 3,
-      max_products: -1,
-      max_users: 5,
-      features: ["pos", "ecommerce", "advanced_reports", "loyalty", "integrations"]
-    },
-    description: "Para negocios en crecimiento"
-  },
-  premium: {
-    name: "Plan Premium",
-    price: "149€/mes",
+  profesional: {
+    name: "Plan Profesional",
+    price: "49€/mes",
     limits: {
       max_stores: -1,
       max_products: -1,
       max_users: -1,
-      features: ["pos", "ecommerce", "advanced_reports", "loyalty", "integrations", "ticketbai", "multi_warehouse", "api_access"]
+      features: ["pos", "ecommerce", "advanced_reports", "loyalty", "integrations", "multi_store"]
     },
-    description: "Sin límites para empresas"
+    description: "Para negocios que buscan crecer"
   }
 };
 
@@ -309,7 +298,7 @@ export default function Onboarding() {
                   <p className="text-slate-600">Puedes cambiar en cualquier momento</p>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-4">
+                <div className="grid md:grid-cols-2 gap-4">
                   {Object.entries(PLANS).map(([key, plan]) => (
                     <button
                       key={key}

@@ -9,56 +9,40 @@ import { createPageUrl } from "@/utils";
 const plans = [
   {
     name: "Básico",
-    price: "29€",
+    price: "19€",
     period: "/mes",
     description: "Perfecto para empezar",
     features: [
       "1 tienda física",
-      "Hasta 100 productos",
+      "Hasta 500 productos",
       "2 usuarios",
-      "POS básico",
+      "POS completo",
       "Gestión de inventario",
       "Informes básicos",
+      "Facturación automática",
       "Soporte por email"
     ],
     gradient: "from-blue-500 to-blue-600",
     popular: false
   },
   {
-    name: "Estándar",
-    price: "79€",
+    name: "Profesional",
+    price: "49€",
     period: "/mes",
-    description: "Para negocios en crecimiento",
-    features: [
-      "Hasta 5 tiendas",
-      "Hasta 1000 productos",
-      "5 usuarios",
-      "POS avanzado + eCommerce",
-      "Gestión multi-tienda",
-      "Informes avanzados",
-      "Programa de fidelización",
-      "Soporte prioritario"
-    ],
-    gradient: "from-purple-500 to-purple-600",
-    popular: true
-  },
-  {
-    name: "Premium",
-    price: "149€",
-    period: "/mes",
-    description: "Para empresas establecidas",
+    description: "Para negocios que buscan crecer",
     features: [
       "Tiendas ilimitadas",
       "Productos ilimitados",
       "Usuarios ilimitados",
-      "Todo lo de Estándar",
-      "API personalizada",
-      "Integraciones avanzadas",
-      "Soporte 24/7",
-      "Gestor de cuenta dedicado"
+      "POS + eCommerce",
+      "Gestión multi-tienda",
+      "Informes avanzados",
+      "Programa de fidelización",
+      "Integraciones externas",
+      "Soporte prioritario"
     ],
-    gradient: "from-orange-500 to-orange-600",
-    popular: false
+    gradient: "from-purple-500 to-purple-600",
+    popular: true
   }
 ];
 
@@ -289,7 +273,7 @@ export default function Landing() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {plans.map((plan, index) => (
               <Card 
                 key={index} 

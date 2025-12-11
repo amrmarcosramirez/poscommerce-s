@@ -12,18 +12,13 @@ import { toast } from "sonner";
 const plans = {
   basico: {
     name: "Básico",
-    price: 29,
-    features: ["1 tienda", "100 productos", "2 usuarios", "POS básico"]
+    price: 19,
+    features: ["1 tienda", "500 productos", "2 usuarios", "POS completo", "Facturación automática"]
   },
-  estandar: {
-    name: "Estándar",
-    price: 79,
-    features: ["5 tiendas", "1000 productos", "5 usuarios", "POS + eCommerce"]
-  },
-  premium: {
-    name: "Premium",
-    price: 149,
-    features: ["Tiendas ilimitadas", "Productos ilimitados", "Usuarios ilimitados", "Todo incluido"]
+  profesional: {
+    name: "Profesional",
+    price: 49,
+    features: ["Tiendas ilimitadas", "Productos ilimitados", "Usuarios ilimitados", "POS + eCommerce", "Informes avanzados", "Fidelización"]
   }
 };
 
@@ -127,7 +122,7 @@ export default function Billing() {
 
         {/* Plans Comparison */}
         <h2 className="text-2xl font-bold text-slate-900 mb-6">Planes Disponibles</h2>
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div className="grid md:grid-cols-2 gap-6 mb-8 max-w-4xl mx-auto">
           {Object.entries(plans).map(([key, plan]) => {
             const isCurrent = config.plan === key;
             return (

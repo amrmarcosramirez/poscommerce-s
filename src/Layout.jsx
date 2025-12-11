@@ -81,6 +81,8 @@ const navigationItems = [
   },
 ];
 
+const PAGES_WITHOUT_LAYOUT = ["Landing", "TrialExpired"];
+
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const [user, setUser] = React.useState(null);
@@ -92,6 +94,11 @@ export default function Layout({ children, currentPageName }) {
       if (configs.length > 0) setConfig(configs[0]);
     }).catch(() => {});
   }, []);
+
+  // Páginas sin layout (Landing, TrialExpired)
+  if (PAGES_WITHOUT_LAYOUT.includes(currentPageName)) {
+    return children;
+  }
 
   const businessName = config?.business_name || "POSCommerce";
   const businessLogo = config?.logo_url;

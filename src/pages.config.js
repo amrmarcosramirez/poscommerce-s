@@ -13,6 +13,8 @@ import Loyalty from './pages/Loyalty';
 import Onboarding from './pages/Onboarding';
 import Settings from './pages/Settings';
 import Landing from './pages/Landing';
+import TrialExpired from './pages/TrialExpired';
+import Billing from './pages/Billing';
 import __Layout from './Layout.jsx';
 
 
@@ -32,10 +34,12 @@ export const PAGES = {
     "Onboarding": Onboarding,
     "Settings": Settings,
     "Landing": Landing,
+    "TrialExpired": TrialExpired,
+    "Billing": Billing,
 }
 
 export const pagesConfig = {
-    mainPage: "Landing",
+    mainPage: "Dashboard",
     Pages: PAGES,
     Layout: __Layout,
 };

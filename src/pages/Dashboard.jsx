@@ -12,6 +12,7 @@ import SalesChart from "../components/dashboard/SalesChart";
 import RecentSales from "../components/dashboard/RecentSales";
 import LowStockAlert from "../components/dashboard/LowStockAlert";
 import TopProducts from "../components/dashboard/TopProducts";
+import TrialBanner from "../components/trial/TrialBanner";
 
 export default function Dashboard() {
   const { data: config, isLoading: loadingConfig } = useQuery({
@@ -43,6 +44,16 @@ export default function Dashboard() {
       window.location.href = createPageUrl("Onboarding");
     }
   }, [config, loadingConfig]);
+
+  // Verificar si el trial ha expirado
+  React.useEffect(() => {
+    if (config && config.subscription_status === "trial" && config.trial_ends_at) {
+      const trialEnded = new Date(config.trial_ends_at) < new Date();
+      if (trialEnded) {
+        window.location.href = createPageUrl("TrialExpired");
+      }
+    }
+  }, [config]);
 
   // Calcular métricas
   const thisMonthSales = sales.filter(sale => {
@@ -78,6 +89,8 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
+      <TrialBanner config={config} />
+      
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>

@@ -12,6 +12,7 @@ import Reports from './pages/Reports';
 import Loyalty from './pages/Loyalty';
 import Onboarding from './pages/Onboarding';
 import Settings from './pages/Settings';
+import Landing from './pages/Landing';
 import __Layout from './Layout.jsx';
 
 
@@ -30,6 +31,7 @@ export const PAGES = {
     "Loyalty": Loyalty,
     "Onboarding": Onboarding,
     "Settings": Settings,
+    "Landing": Landing,
 }
 
 export const pagesConfig = {

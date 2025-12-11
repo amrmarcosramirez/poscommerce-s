@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { usePlanLimits } from "../components/limits/PlanLimitsChecker";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,16 @@ const getStockForStore = (product, storeId) => {
 
 export default function Products() {
   const queryClient = useQueryClient();
+  
+  const { data: config } = useQuery({
+    queryKey: ['businessConfig'],
+    queryFn: async () => {
+      const configs = await base44.entities.BusinessConfig.list();
+      return configs[0] || null;
+    },
+  });
+  
+  const { checkLimit } = usePlanLimits(config);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -346,6 +357,11 @@ export default function Products() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Verificar límites del plan solo al crear (no al editar)
+    if (!editingProduct && !checkLimit('products', products.length)) {
+      return;
+    }
     
     // Calcular stock total según el modo
     let totalStock = 0;

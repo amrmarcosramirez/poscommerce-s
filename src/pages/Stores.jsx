@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { usePlanLimits } from "../components/limits/PlanLimitsChecker";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,16 @@ export default function Stores() {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingStore, setEditingStore] = useState(null);
+  
+  const { data: config } = useQuery({
+    queryKey: ['businessConfig'],
+    queryFn: async () => {
+      const configs = await base44.entities.BusinessConfig.list();
+      return configs[0] || null;
+    },
+  });
+  
+  const { checkLimit } = usePlanLimits(config);
   const [formData, setFormData] = useState({
     name: "",
     address: "",

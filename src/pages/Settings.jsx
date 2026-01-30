@@ -134,7 +134,7 @@ export default function Settings() {
       data: existing || { is_active: false, test_mode: true, credentials: {} }
     });
   };
-/*
+
   if (loadingConfig) {
     return (
       <div className="p-6 lg:p-8">
@@ -147,8 +147,6 @@ export default function Settings() {
       </div>
     );
   }
-
-  
 
   if (!config) {
     return (
@@ -166,7 +164,7 @@ export default function Settings() {
       </div>
     );
   }
-*/
+
   return (
     <div className="p-6 lg:p-8">
       <div className="max-w-5xl mx-auto">

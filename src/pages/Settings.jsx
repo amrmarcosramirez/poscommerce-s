@@ -32,19 +32,6 @@ const FIELD_LABELS = {
   webhook_secret: "Webhook Secret"
 };
 
-const [formData, setFormData] = useState({
-    business_name: "",
-    cif: "",
-    legal_name: "",
-    address: "",
-    city: "",
-    postal_code: "",
-    phone: "",
-    email: "",
-    logo_url: "",
-    plan: "basico"
-});
-
 export default function Settings() {
   const queryClient = useQueryClient();
   const [uploadingLogo, setUploadingLogo] = useState(false);

@@ -14,6 +14,14 @@ import LowStockAlert from "../components/dashboard/LowStockAlert";
 import TopProducts from "../components/dashboard/TopProducts";
 
 export default function Dashboard() {
+  const { data: config, isLoading: loadingConfig } = useQuery({
+    queryKey: ['businessConfig'],
+    queryFn: async () => {
+      const configs = await base44.entities.BusinessConfig.list();
+      return configs[0] || null;
+    },
+  });
+
   const { data: sales = [], isLoading: loadingSales } = useQuery({
     queryKey: ['sales'],
     queryFn: () => base44.entities.Sale.list('-sale_date', 100),

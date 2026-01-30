@@ -37,6 +37,16 @@ export default function Settings() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [editingIntegration, setEditingIntegration] = useState(null);
   const [showCredentials, setShowCredentials] = useState({});
+  const [formData, setFormData] = useState({
+    business_name: "",
+    cif: "",
+    legal_name: "",
+    address: "",
+    city: "",
+    postal_code: "",
+    phone: "",
+    email: ""
+  });
 
   const { data: config, isLoading: loadingConfig } = useQuery({
     queryKey: ['businessConfig'],
@@ -50,6 +60,21 @@ export default function Settings() {
     queryKey: ['integrations'],
     queryFn: () => base44.entities.Integration.list(),
   });
+
+  React.useEffect(() => {
+    if (config) {
+      setFormData({
+        business_name: config.business_name || "",
+        cif: config.cif || "",
+        legal_name: config.legal_name || "",
+        address: config.address || "",
+        city: config.city || "",
+        postal_code: config.postal_code || "",
+        phone: config.phone || "",
+        email: config.email || ""
+      });
+    }
+  }, [config]);
 
   const updateConfigMutation = useMutation({
     mutationFn: (data) => base44.entities.BusinessConfig.update(config.id, data),
@@ -93,9 +118,7 @@ export default function Settings() {
 
   const handleConfigSubmit = (e) => {
     e.preventDefault();
-    const formData = new FormData(e.target);
-    const data = Object.fromEntries(formData);
-    updateConfigMutation.mutate(data);
+    updateConfigMutation.mutate(formData);
   };
 
   const handleIntegrationSubmit = (e) => {
@@ -129,6 +152,36 @@ export default function Settings() {
       data: existing || { is_active: false, test_mode: true, credentials: {} }
     });
   };
+
+  if (loadingConfig) {
+    return (
+      <div className="p-6 lg:p-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-slate-200 rounded w-1/3"></div>
+            <div className="h-64 bg-slate-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!config) {
+    return (
+      <div className="p-6 lg:p-8 flex items-center justify-center min-h-screen">
+        <Card className="max-w-md shadow-xl">
+          <CardContent className="p-8 text-center">
+            <SettingsIcon className="w-16 h-16 mx-auto mb-4 text-slate-400" />
+            <h2 className="text-2xl font-bold mb-2">Configura tu Negocio</h2>
+            <p className="text-slate-600 mb-4">Completa el onboarding primero</p>
+            <Button onClick={() => window.location.href = '/onboarding'}>
+              Ir al Onboarding
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 lg:p-8">

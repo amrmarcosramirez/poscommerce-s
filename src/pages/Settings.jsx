@@ -325,68 +325,6 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
-          {/* Tab: Plan */}
-          <TabsContent value="plan">
-            <Card>
-              <CardHeader>
-                <CardTitle>Plan Actual</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
-                  <div>
-                    <Badge className={PLANS[config.plan].color + " mb-2"}>
-                      {PLANS[config.plan].name}
-                    </Badge>
-                    <p className="text-2xl font-bold">{PLANS[config.plan].price}</p>
-                  </div>
-                  <Button variant="outline">Cambiar Plan</Button>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-lg mb-4">Límites de tu Plan</h3>
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <Card>
-                      <CardContent className="p-4">
-                        <p className="text-sm text-slate-600">Tiendas</p>
-                        <p className="text-2xl font-bold">
-                          {config.plan_limits.max_stores === -1 ? '∞' : config.plan_limits.max_stores}
-                        </p>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="p-4">
-                        <p className="text-sm text-slate-600">Productos</p>
-                        <p className="text-2xl font-bold">
-                          {config.plan_limits.max_products === -1 ? '∞' : config.plan_limits.max_products}
-                        </p>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="p-4">
-                        <p className="text-sm text-slate-600">Usuarios</p>
-                        <p className="text-2xl font-bold">
-                          {config.plan_limits.max_users === -1 ? '∞' : config.plan_limits.max_users}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-lg mb-3">Funcionalidades Incluidas</h3>
-                  <div className="grid md:grid-cols-2 gap-2">
-                    {config.plan_limits.features?.map(feature => (
-                      <div key={feature} className="flex items-center gap-2 text-sm">
-                        <span className="text-green-600">✓</span>
-                        <span className="capitalize">{feature.replace('_', ' ')}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           {/* Tab: Integraciones */}
           <TabsContent value="integrations">
             <div className="space-y-4">

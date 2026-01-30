@@ -197,7 +197,7 @@ export default function Settings() {
                   <div className="space-y-2">
                     <Label>Logo</Label>
                     <div className="flex items-center gap-4">
-                      {config.logo_url ? (
+                      {config?.logo_url ? (
                         <div className="relative">
                           <img
                             src={config.logo_url}

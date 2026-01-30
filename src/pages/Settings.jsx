@@ -37,6 +37,16 @@ export default function Settings() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [editingIntegration, setEditingIntegration] = useState(null);
   const [showCredentials, setShowCredentials] = useState({});
+  const [formData, setFormData] = useState({
+    business_name: "",
+    cif: "",
+    legal_name: "",
+    address: "",
+    city: "",
+    postal_code: "",
+    phone: "",
+    email: ""
+  });
 
   const { data: config, isLoading: loadingConfig } = useQuery({
     queryKey: ['businessConfig'],

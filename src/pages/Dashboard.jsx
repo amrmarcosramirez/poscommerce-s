@@ -36,28 +36,6 @@ export default function Dashboard() {
     queryKey: ['customers'],
     queryFn: () => base44.entities.Customer.list(),
   });
-
-  /*
-  // Verificar estado del usuario y redirigir según corresponda
-  React.useEffect(() => {
-    if (loadingConfig) return;
-
-    // Si no hay config o no completó onboarding, redirigir a onboarding
-    if (!config || !config.onboarding_completed) {
-      window.location.href = createPageUrl("Onboarding");
-      return;
-    }
-
-    // Si el trial ha expirado, redirigir a TrialExpired
-    if (config.subscription_status === "trial" && config.trial_ends_at) {
-      const trialEnded = new Date(config.trial_ends_at) < new Date();
-      if (trialEnded) {
-        window.location.href = createPageUrl("TrialExpired");
-        return;
-      }
-    }
-  }, [config, loadingConfig]);
-  */
   
   // Calcular métricas
   const thisMonthSales = sales.filter(sale => {
@@ -79,18 +57,6 @@ export default function Dashboard() {
     : 0;
 
   const lowStockProducts = products.filter(p => p.stock <= p.min_stock && p.is_active);
-  /*
-  if (loadingConfig || !config) {
-    return (
-      <div className="p-6 lg:p-8 flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-slate-600">Cargando configuración...</p>
-        </div>
-      </div>
-    );
-  }
-  */
 
   return (
     <div className="p-6 lg:p-8 space-y-6">

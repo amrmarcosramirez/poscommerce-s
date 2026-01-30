@@ -247,7 +247,7 @@ export default function Settings() {
                       <Input
                         id="business_name"
                         name="business_name"
-                        defaultValue={config.business_name}
+                        defaultValue={config?.business_name}
                         required
                       />
                     </div>

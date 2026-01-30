@@ -200,7 +200,7 @@ export default function Settings() {
                       {config?.logo_url ? (
                         <div className="relative">
                           <img
-                            src={config.logo_url}
+                            src={config?.logo_url}
                             alt="Logo"
                             className="w-24 h-24 object-contain rounded-lg border"
                           />

@@ -11,11 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Settings as SettingsIcon, Building2, CreditCard, Plug, Upload, Image as ImageIcon, X, Lock, Unlock } from "lucide-react";
 import { toast } from "sonner";
 
-const PLANS = {
-  basico: { name: "Plan Básico", price: "19€/mes", color: "bg-blue-100 text-blue-800" },
-  profesional: { name: "Plan Profesional", price: "49€/mes", color: "bg-purple-100 text-purple-800" }
-};
-
 const INTEGRATION_TYPES = {
   redsys: { name: "Redsys (TPV Bancario)", icon: "💳", description: "Pasarela de pago española", fields: ["merchant_code", "secret_key", "terminal"] },
   stripe: { name: "Stripe", icon: "💳", description: "Pasarela de pago internacional", fields: ["api_key", "webhook_secret"] },
@@ -134,36 +129,6 @@ export default function Settings() {
       data: existing || { is_active: false, test_mode: true, credentials: {} }
     });
   };
-
-  if (loadingConfig) {
-    return (
-      <div className="p-6 lg:p-8">
-        <div className="max-w-5xl mx-auto">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-slate-200 rounded w-1/3"></div>
-            <div className="h-64 bg-slate-200 rounded"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!config) {
-    return (
-      <div className="p-6 lg:p-8 flex items-center justify-center min-h-screen">
-        <Card className="max-w-md shadow-xl">
-          <CardContent className="p-8 text-center">
-            <SettingsIcon className="w-16 h-16 mx-auto mb-4 text-slate-400" />
-            <h2 className="text-2xl font-bold mb-2">Configura tu Negocio</h2>
-            <p className="text-slate-600 mb-4">Completa el onboarding primero</p>
-            <Button onClick={() => window.location.href = '/onboarding'}>
-              Ir al Onboarding
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="p-6 lg:p-8">

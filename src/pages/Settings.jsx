@@ -134,7 +134,7 @@ export default function Settings() {
       data: existing || { is_active: false, test_mode: true, credentials: {} }
     });
   };
-
+/*
   if (loadingConfig) {
     return (
       <div className="p-6 lg:p-8">
@@ -148,16 +148,25 @@ export default function Settings() {
     );
   }
 
+  
+
   if (!config) {
     return (
       <div className="p-6 lg:p-8 flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-slate-600">Cargando configuración...</p>
-        </div>
+        <Card className="max-w-md shadow-xl">
+          <CardContent className="p-8 text-center">
+            <SettingsIcon className="w-16 h-16 mx-auto mb-4 text-slate-400" />
+            <h2 className="text-2xl font-bold mb-2">Configura tu Negocio</h2>
+            <p className="text-slate-600 mb-4">Completa el onboarding primero</p>
+            <Button onClick={() => window.location.href = '/onboarding'}>
+              Ir al Onboarding
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
+*/
   return (
     <div className="p-6 lg:p-8">
       <div className="max-w-5xl mx-auto">
@@ -197,10 +206,10 @@ export default function Settings() {
                   <div className="space-y-2">
                     <Label>Logo</Label>
                     <div className="flex items-center gap-4">
-                      {config?.logo_url ? (
+                      {config.logo_url ? (
                         <div className="relative">
                           <img
-                            src={config?.logo_url}
+                            src={config.logo_url}
                             alt="Logo"
                             className="w-24 h-24 object-contain rounded-lg border"
                           />
@@ -247,7 +256,7 @@ export default function Settings() {
                       <Input
                         id="business_name"
                         name="business_name"
-                        defaultValue={config?.business_name}
+                        defaultValue={config.business_name}
                         required
                       />
                     </div>
@@ -256,7 +265,7 @@ export default function Settings() {
                       <Input
                         id="cif"
                         name="cif"
-                        defaultValue={config?.cif}
+                        defaultValue={config.cif}
                       />
                     </div>
                     <div className="md:col-span-2">
@@ -264,7 +273,7 @@ export default function Settings() {
                       <Input
                         id="legal_name"
                         name="legal_name"
-                        defaultValue={config?.legal_name}
+                        defaultValue={config.legal_name}
                       />
                     </div>
                     <div className="md:col-span-2">
@@ -272,7 +281,7 @@ export default function Settings() {
                       <Input
                         id="address"
                         name="address"
-                        defaultValue={config?.address}
+                        defaultValue={config.address}
                       />
                     </div>
                     <div>
@@ -280,7 +289,7 @@ export default function Settings() {
                       <Input
                         id="city"
                         name="city"
-                        defaultValue={config?.city}
+                        defaultValue={config.city}
                       />
                     </div>
                     <div>
@@ -288,7 +297,7 @@ export default function Settings() {
                       <Input
                         id="postal_code"
                         name="postal_code"
-                        defaultValue={config?.postal_code}
+                        defaultValue={config.postal_code}
                       />
                     </div>
                     <div>
@@ -296,7 +305,7 @@ export default function Settings() {
                       <Input
                         id="phone"
                         name="phone"
-                        defaultValue={config?.phone}
+                        defaultValue={config.phone}
                       />
                     </div>
                     <div>
@@ -305,7 +314,7 @@ export default function Settings() {
                         id="email"
                         name="email"
                         type="email"
-                        defaultValue={config?.email}
+                        defaultValue={config.email}
                       />
                     </div>
                   </div>

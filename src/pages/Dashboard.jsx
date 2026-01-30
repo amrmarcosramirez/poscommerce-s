@@ -38,6 +38,7 @@ export default function Dashboard() {
     queryFn: () => base44.entities.Customer.list(),
   });
 
+  /*
   // Verificar estado del usuario y redirigir según corresponda
   React.useEffect(() => {
     if (loadingConfig) return;
@@ -57,7 +58,8 @@ export default function Dashboard() {
       }
     }
   }, [config, loadingConfig]);
-
+  */
+  
   // Calcular métricas
   const thisMonthSales = sales.filter(sale => {
     const saleDate = new Date(sale.sale_date);

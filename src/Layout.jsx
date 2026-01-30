@@ -106,7 +106,7 @@ export default function Layout({ children, currentPageName }) {
   }*/
 
   const businessName = config?.business_name || "POSCommerce";
-  const businessLogo = config?.logo_url;
+  const businessLogo = config?.logo_url || null;
 
   return (
     <SidebarProvider>

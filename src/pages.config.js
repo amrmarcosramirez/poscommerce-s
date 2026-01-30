@@ -32,11 +32,13 @@ export const PAGES = {
     "Categories": Categories,
     "Reports": Reports,
     "Loyalty": Loyalty,
+    /*
     "Onboarding": Onboarding,
     "Settings": Settings,
     "Landing": Landing,
     "TrialExpired": TrialExpired,
     "Billing": Billing,
+    */
     "TeamMembers": TeamMembers,
 }
 

@@ -37,6 +37,7 @@ export default function Settings() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [editingIntegration, setEditingIntegration] = useState(null);
   const [showCredentials, setShowCredentials] = useState({});
+
   const [formData, setFormData] = useState({
     business_name: "",
     cif: "",
@@ -45,9 +46,11 @@ export default function Settings() {
     city: "",
     postal_code: "",
     phone: "",
-    email: ""
+    email: "",
+    logo_url: "",
+    plan: "basico"
   });
-
+  
   const { data: config, isLoading: loadingConfig } = useQuery({
     queryKey: ['businessConfig'],
     queryFn: async () => {
@@ -60,21 +63,6 @@ export default function Settings() {
     queryKey: ['integrations'],
     queryFn: () => base44.entities.Integration.list(),
   });
-
-  React.useEffect(() => {
-    if (config) {
-      setFormData({
-        business_name: config.business_name || "",
-        cif: config.cif || "",
-        legal_name: config.legal_name || "",
-        address: config.address || "",
-        city: config.city || "",
-        postal_code: config.postal_code || "",
-        phone: config.phone || "",
-        email: config.email || ""
-      });
-    }
-  }, [config]);
 
   const updateConfigMutation = useMutation({
     mutationFn: (data) => base44.entities.BusinessConfig.update(config.id, data),
@@ -118,7 +106,9 @@ export default function Settings() {
 
   const handleConfigSubmit = (e) => {
     e.preventDefault();
-    updateConfigMutation.mutate(formData);
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    updateConfigMutation.mutate(data);
   };
 
   const handleIntegrationSubmit = (e) => {

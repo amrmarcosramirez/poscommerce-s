@@ -86,7 +86,7 @@ const navigationItems = [
   },
 ];
 
-const PAGES_WITHOUT_LAYOUT = ["Landing", "TrialExpired", "Onboarding"];
+//const PAGES_WITHOUT_LAYOUT = ["Landing", "TrialExpired", "Onboarding"];
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -101,9 +101,9 @@ export default function Layout({ children, currentPageName }) {
   }, []);
 
   // Páginas sin layout (Landing, TrialExpired)
-  if (PAGES_WITHOUT_LAYOUT.includes(currentPageName)) {
+  /*if (PAGES_WITHOUT_LAYOUT.includes(currentPageName)) {
     return children;
-  }
+  }*/
 
   const businessName = config?.business_name || "POSCommerce";
   const businessLogo = config?.logo_url;

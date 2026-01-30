@@ -160,10 +160,6 @@ export default function Settings() {
               <Building2 className="w-4 h-4 mr-2" />
               Negocio
             </TabsTrigger>
-            <TabsTrigger value="plan">
-              <CreditCard className="w-4 h-4 mr-2" />
-              Plan y Límites
-            </TabsTrigger>
             <TabsTrigger value="integrations">
               <Plug className="w-4 h-4 mr-2" />
               Integraciones

@@ -80,7 +80,7 @@ export default function Dashboard() {
     : 0;
 
   const lowStockProducts = products.filter(p => p.stock <= p.min_stock && p.is_active);
-
+  /*
   if (loadingConfig || !config) {
     return (
       <div className="p-6 lg:p-8 flex items-center justify-center min-h-screen">
@@ -91,6 +91,7 @@ export default function Dashboard() {
       </div>
     );
   }
+  */
 
   return (
     <div className="p-6 lg:p-8 space-y-6">

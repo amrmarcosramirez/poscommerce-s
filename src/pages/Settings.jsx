@@ -195,70 +195,89 @@ export default function Settings() {
 
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="business_name">Nombre Comercial</Label>
+                      <Label htmlFor="business_name">Nombre Comercial *</Label>
                       <Input
                         id="business_name"
-                        name="business_name"
-                        defaultValue={config.business_name}
+                        value={formData.business_name}
+                        onChange={(e) => setFormData({...formData, business_name: e.target.value})}
+                        placeholder="Ej: Boutique María"
                         required
                       />
                     </div>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="cif">CIF/NIF *</Label>
+                        <Input
+                          id="cif"
+                          value={formData.cif}
+                          onChange={(e) => setFormData({...formData, cif: e.target.value})}
+                          placeholder="Ej: B12345678"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="legal_name">Razón Social</Label>
+                        <Input
+                          id="legal_name"
+                          value={formData.legal_name}
+                          onChange={(e) => setFormData({...formData, legal_name: e.target.value})}
+                          placeholder="Nombre legal de la empresa"
+                        />
+                      </div>
+                    </div>
+
                     <div>
-                      <Label htmlFor="cif">CIF/NIF</Label>
-                      <Input
-                        id="cif"
-                        name="cif"
-                        defaultValue={config.cif}
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <Label htmlFor="legal_name">Razón Social</Label>
-                      <Input
-                        id="legal_name"
-                        name="legal_name"
-                        defaultValue={config.legal_name}
-                      />
-                    </div>
-                    <div className="md:col-span-2">
                       <Label htmlFor="address">Dirección</Label>
                       <Input
                         id="address"
-                        name="address"
-                        defaultValue={config.address}
+                        value={formData.address}
+                        onChange={(e) => setFormData({...formData, address: e.target.value})}
+                        placeholder="Calle, número, piso..."
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="city">Ciudad</Label>
-                      <Input
-                        id="city"
-                        name="city"
-                        defaultValue={config.city}
-                      />
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="city">Ciudad</Label>
+                        <Input
+                          id="city"
+                          value={formData.city}
+                          onChange={(e) => setFormData({...formData, city: e.target.value})}
+                          placeholder="Madrid, Barcelona..."
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="postal_code">Código Postal</Label>
+                        <Input
+                          id="postal_code"
+                          value={formData.postal_code}
+                          onChange={(e) => setFormData({...formData, postal_code: e.target.value})}
+                          placeholder="28001"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <Label htmlFor="postal_code">Código Postal</Label>
-                      <Input
-                        id="postal_code"
-                        name="postal_code"
-                        defaultValue={config.postal_code}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="phone">Teléfono</Label>
-                      <Input
-                        id="phone"
-                        name="phone"
-                        defaultValue={config.phone}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        defaultValue={config.email}
-                      />
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="phone">Teléfono</Label>
+                        <Input
+                          id="phone"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                          placeholder="+34 600 000 000"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => setFormData({...formData, email: e.target.value})}
+                          placeholder="contacto@tunegocio.com"
+                        />
+                      </div>
                     </div>
                   </div>
 

@@ -51,6 +51,21 @@ export default function Settings() {
     queryFn: () => base44.entities.Integration.list(),
   });
 
+  React.useEffect(() => {
+    if (config) {
+      setFormData({
+        business_name: config.business_name || "",
+        cif: config.cif || "",
+        legal_name: config.legal_name || "",
+        address: config.address || "",
+        city: config.city || "",
+        postal_code: config.postal_code || "",
+        phone: config.phone || "",
+        email: config.email || ""
+      });
+    }
+  }, [config]);
+
   const updateConfigMutation = useMutation({
     mutationFn: (data) => base44.entities.BusinessConfig.update(config.id, data),
     onSuccess: () => {
@@ -93,9 +108,7 @@ export default function Settings() {
 
   const handleConfigSubmit = (e) => {
     e.preventDefault();
-    const formData = new FormData(e.target);
-    const data = Object.fromEntries(formData);
-    updateConfigMutation.mutate(data);
+    updateConfigMutation.mutate(formData);
   };
 
   const handleIntegrationSubmit = (e) => {

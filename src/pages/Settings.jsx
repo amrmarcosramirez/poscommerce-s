@@ -148,6 +148,7 @@ export default function Settings() {
     );
   }
 
+  /*
   if (!config) {
     return (
       <div className="p-6 lg:p-8 flex items-center justify-center min-h-screen">
@@ -164,7 +165,7 @@ export default function Settings() {
       </div>
     );
   }
-
+  */
   return (
     <div className="p-6 lg:p-8">
       <div className="max-w-5xl mx-auto">

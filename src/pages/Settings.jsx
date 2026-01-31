@@ -205,7 +205,7 @@ export default function Settings() {
                   <div className="space-y-2">
                     <Label>Logo</Label>
                     <div className="flex items-center gap-4">
-                      {config.logo_url ? (
+                      {config?.logo_url ? (
                         <div className="relative">
                           <img
                             src={config.logo_url}
@@ -255,7 +255,7 @@ export default function Settings() {
                       <Input
                         id="business_name"
                         name="business_name"
-                        defaultValue={config.business_name}
+                        defaultValue={config?.business_name}
                         required
                       />
                     </div>
@@ -264,7 +264,7 @@ export default function Settings() {
                       <Input
                         id="cif"
                         name="cif"
-                        defaultValue={config.cif}
+                        defaultValue={config?.cif}
                       />
                     </div>
                     <div className="md:col-span-2">
@@ -272,7 +272,7 @@ export default function Settings() {
                       <Input
                         id="legal_name"
                         name="legal_name"
-                        defaultValue={config.legal_name}
+                        defaultValue={config?.legal_name}
                       />
                     </div>
                     <div className="md:col-span-2">
@@ -280,7 +280,7 @@ export default function Settings() {
                       <Input
                         id="address"
                         name="address"
-                        defaultValue={config.address}
+                        defaultValue={config?.address}
                       />
                     </div>
                     <div>
@@ -288,7 +288,7 @@ export default function Settings() {
                       <Input
                         id="city"
                         name="city"
-                        defaultValue={config.city}
+                        defaultValue={config?.city}
                       />
                     </div>
                     <div>
@@ -296,7 +296,7 @@ export default function Settings() {
                       <Input
                         id="postal_code"
                         name="postal_code"
-                        defaultValue={config.postal_code}
+                        defaultValue={config?.postal_code}
                       />
                     </div>
                     <div>
@@ -304,7 +304,7 @@ export default function Settings() {
                       <Input
                         id="phone"
                         name="phone"
-                        defaultValue={config.phone}
+                        defaultValue={config?.phone}
                       />
                     </div>
                     <div>
@@ -313,7 +313,7 @@ export default function Settings() {
                         id="email"
                         name="email"
                         type="email"
-                        defaultValue={config.email}
+                        defaultValue={config?.email}
                       />
                     </div>
                   </div>
@@ -335,10 +335,10 @@ export default function Settings() {
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
                   <div>
-                    <Badge className={PLANS[config.plan].color + " mb-2"}>
-                      {PLANS[config.plan].name}
+                    <Badge className={PLANS[config?.plan || 'basico'].color + " mb-2"}>
+                      {PLANS[config?.plan || 'basico'].name}
                     </Badge>
-                    <p className="text-2xl font-bold">{PLANS[config.plan].price}</p>
+                    <p className="text-2xl font-bold">{PLANS[config?.plan || 'basico'].price}</p>
                   </div>
                   <Button variant="outline">Cambiar Plan</Button>
                 </div>
@@ -350,7 +350,7 @@ export default function Settings() {
                       <CardContent className="p-4">
                         <p className="text-sm text-slate-600">Tiendas</p>
                         <p className="text-2xl font-bold">
-                          {config.plan_limits.max_stores === -1 ? '∞' : config.plan_limits.max_stores}
+                          {config?.plan_limits?.max_stores === -1 ? '∞' : config?.plan_limits?.max_stores || 0}
                         </p>
                       </CardContent>
                     </Card>
@@ -358,7 +358,7 @@ export default function Settings() {
                       <CardContent className="p-4">
                         <p className="text-sm text-slate-600">Productos</p>
                         <p className="text-2xl font-bold">
-                          {config.plan_limits.max_products === -1 ? '∞' : config.plan_limits.max_products}
+                          {config?.plan_limits?.max_products === -1 ? '∞' : config?.plan_limits?.max_products || 0}
                         </p>
                       </CardContent>
                     </Card>
@@ -366,7 +366,7 @@ export default function Settings() {
                       <CardContent className="p-4">
                         <p className="text-sm text-slate-600">Usuarios</p>
                         <p className="text-2xl font-bold">
-                          {config.plan_limits.max_users === -1 ? '∞' : config.plan_limits.max_users}
+                          {config?.plan_limits?.max_users === -1 ? '∞' : config?.plan_limits?.max_users || 0}
                         </p>
                       </CardContent>
                     </Card>
@@ -376,7 +376,7 @@ export default function Settings() {
                 <div>
                   <h3 className="font-semibold text-lg mb-3">Funcionalidades Incluidas</h3>
                   <div className="grid md:grid-cols-2 gap-2">
-                    {config.plan_limits.features?.map(feature => (
+                    {config?.plan_limits?.features?.map(feature => (
                       <div key={feature} className="flex items-center gap-2 text-sm">
                         <span className="text-green-600">✓</span>
                         <span className="capitalize">{feature.replace('_', ' ')}</span>

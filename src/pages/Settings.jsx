@@ -11,6 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Settings as SettingsIcon, Building2, CreditCard, Plug, Upload, Image as ImageIcon, X, Lock, Unlock } from "lucide-react";
 import { toast } from "sonner";
 
+const PLANS = {
+  basico: { name: "Plan Básico", price: "19€/mes", color: "bg-blue-100 text-blue-800" },
+  profesional: { name: "Plan Profesional", price: "49€/mes", color: "bg-purple-100 text-purple-800" }
+};
+
 const INTEGRATION_TYPES = {
   redsys: { name: "Redsys (TPV Bancario)", icon: "💳", description: "Pasarela de pago española", fields: ["merchant_code", "secret_key", "terminal"] },
   stripe: { name: "Stripe", icon: "💳", description: "Pasarela de pago internacional", fields: ["api_key", "webhook_secret"] },
@@ -38,19 +43,6 @@ export default function Settings() {
   const [editingIntegration, setEditingIntegration] = useState(null);
   const [showCredentials, setShowCredentials] = useState({});
 
-  const [formData, setFormData] = useState({
-    business_name: "",
-    cif: "",
-    legal_name: "",
-    address: "",
-    city: "",
-    postal_code: "",
-    phone: "",
-    email: "",
-    logo_url: "",
-    plan: "basico"
-  });
-  
   const { data: config, isLoading: loadingConfig } = useQuery({
     queryKey: ['businessConfig'],
     queryFn: async () => {
@@ -143,6 +135,36 @@ export default function Settings() {
     });
   };
 
+  if (loadingConfig) {
+    return (
+      <div className="p-6 lg:p-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-slate-200 rounded w-1/3"></div>
+            <div className="h-64 bg-slate-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!config) {
+    return (
+      <div className="p-6 lg:p-8 flex items-center justify-center min-h-screen">
+        <Card className="max-w-md shadow-xl">
+          <CardContent className="p-8 text-center">
+            <SettingsIcon className="w-16 h-16 mx-auto mb-4 text-slate-400" />
+            <h2 className="text-2xl font-bold mb-2">Configura tu Negocio</h2>
+            <p className="text-slate-600 mb-4">Completa el onboarding primero</p>
+            <Button onClick={() => window.location.href = '/onboarding'}>
+              Ir al Onboarding
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 lg:p-8">
       <div className="max-w-5xl mx-auto">
@@ -159,6 +181,10 @@ export default function Settings() {
             <TabsTrigger value="business">
               <Building2 className="w-4 h-4 mr-2" />
               Negocio
+            </TabsTrigger>
+            <TabsTrigger value="plan">
+              <CreditCard className="w-4 h-4 mr-2" />
+              Plan y Límites
             </TabsTrigger>
             <TabsTrigger value="integrations">
               <Plug className="w-4 h-4 mr-2" />
@@ -178,6 +204,26 @@ export default function Settings() {
                   <div className="space-y-2">
                     <Label>Logo</Label>
                     <div className="flex items-center gap-4">
+                      {config.logo_url ? (
+                        <div className="relative">
+                          <img
+                            src={config.logo_url}
+                            alt="Logo"
+                            className="w-24 h-24 object-contain rounded-lg border"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => updateConfigMutation.mutate({ logo_url: "" })}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="w-24 h-24 border-2 border-dashed rounded-lg flex items-center justify-center bg-slate-50">
+                          <ImageIcon className="w-8 h-8 text-slate-400" />
+                        </div>
+                      )}
                       <div>
                         <input
                           type="file"
@@ -204,89 +250,70 @@ export default function Settings() {
 
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="business_name">Nombre Comercial *</Label>
+                      <Label htmlFor="business_name">Nombre Comercial</Label>
                       <Input
                         id="business_name"
-                        value={formData.business_name}
-                        onChange={(e) => setFormData({...formData, business_name: e.target.value})}
-                        placeholder="Ej: Boutique María"
+                        name="business_name"
+                        defaultValue={config.business_name}
                         required
                       />
                     </div>
-
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="cif">CIF/NIF *</Label>
-                        <Input
-                          id="cif"
-                          value={formData.cif}
-                          onChange={(e) => setFormData({...formData, cif: e.target.value})}
-                          placeholder="Ej: B12345678"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="legal_name">Razón Social</Label>
-                        <Input
-                          id="legal_name"
-                          value={formData.legal_name}
-                          onChange={(e) => setFormData({...formData, legal_name: e.target.value})}
-                          placeholder="Nombre legal de la empresa"
-                        />
-                      </div>
-                    </div>
-
                     <div>
+                      <Label htmlFor="cif">CIF/NIF</Label>
+                      <Input
+                        id="cif"
+                        name="cif"
+                        defaultValue={config.cif}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label htmlFor="legal_name">Razón Social</Label>
+                      <Input
+                        id="legal_name"
+                        name="legal_name"
+                        defaultValue={config.legal_name}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
                       <Label htmlFor="address">Dirección</Label>
                       <Input
                         id="address"
-                        value={formData.address}
-                        onChange={(e) => setFormData({...formData, address: e.target.value})}
-                        placeholder="Calle, número, piso..."
+                        name="address"
+                        defaultValue={config.address}
                       />
                     </div>
-
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="city">Ciudad</Label>
-                        <Input
-                          id="city"
-                          value={formData.city}
-                          onChange={(e) => setFormData({...formData, city: e.target.value})}
-                          placeholder="Madrid, Barcelona..."
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="postal_code">Código Postal</Label>
-                        <Input
-                          id="postal_code"
-                          value={formData.postal_code}
-                          onChange={(e) => setFormData({...formData, postal_code: e.target.value})}
-                          placeholder="28001"
-                        />
-                      </div>
+                    <div>
+                      <Label htmlFor="city">Ciudad</Label>
+                      <Input
+                        id="city"
+                        name="city"
+                        defaultValue={config.city}
+                      />
                     </div>
-
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="phone">Teléfono</Label>
-                        <Input
-                          id="phone"
-                          value={formData.phone}
-                          onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                          placeholder="+34 600 000 000"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) => setFormData({...formData, email: e.target.value})}
-                          placeholder="contacto@tunegocio.com"
-                        />
-                      </div>
+                    <div>
+                      <Label htmlFor="postal_code">Código Postal</Label>
+                      <Input
+                        id="postal_code"
+                        name="postal_code"
+                        defaultValue={config.postal_code}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="phone">Teléfono</Label>
+                      <Input
+                        id="phone"
+                        name="phone"
+                        defaultValue={config.phone}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        defaultValue={config.email}
+                      />
                     </div>
                   </div>
 
@@ -294,6 +321,68 @@ export default function Settings() {
                     {updateConfigMutation.isPending ? "Guardando..." : "Guardar Cambios"}
                   </Button>
                 </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Tab: Plan */}
+          <TabsContent value="plan">
+            <Card>
+              <CardHeader>
+                <CardTitle>Plan Actual</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+                  <div>
+                    <Badge className={PLANS[config.plan].color + " mb-2"}>
+                      {PLANS[config.plan].name}
+                    </Badge>
+                    <p className="text-2xl font-bold">{PLANS[config.plan].price}</p>
+                  </div>
+                  <Button variant="outline">Cambiar Plan</Button>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-lg mb-4">Límites de tu Plan</h3>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <Card>
+                      <CardContent className="p-4">
+                        <p className="text-sm text-slate-600">Tiendas</p>
+                        <p className="text-2xl font-bold">
+                          {config.plan_limits.max_stores === -1 ? '∞' : config.plan_limits.max_stores}
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-4">
+                        <p className="text-sm text-slate-600">Productos</p>
+                        <p className="text-2xl font-bold">
+                          {config.plan_limits.max_products === -1 ? '∞' : config.plan_limits.max_products}
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-4">
+                        <p className="text-sm text-slate-600">Usuarios</p>
+                        <p className="text-2xl font-bold">
+                          {config.plan_limits.max_users === -1 ? '∞' : config.plan_limits.max_users}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Funcionalidades Incluidas</h3>
+                  <div className="grid md:grid-cols-2 gap-2">
+                    {config.plan_limits.features?.map(feature => (
+                      <div key={feature} className="flex items-center gap-2 text-sm">
+                        <span className="text-green-600">✓</span>
+                        <span className="capitalize">{feature.replace('_', ' ')}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

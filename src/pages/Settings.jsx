@@ -1,13 +1,23 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings as SettingsIcon, Building2, Plug, Upload, Image as ImageIcon, X, Lock, Unlock } from "lucide-react";
+import {
+  Settings as SettingsIcon,
+  Building2,
+  Plug,
+  Upload,
+  Image as ImageIcon,
+  X,
+  Lock,
+  Unlock
+} from "lucide-react";
 import { toast } from "sonner";
 
 const PLANS = {
@@ -57,10 +67,12 @@ const DEFAULT_CONFIG = {
 
 export default function Settings() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [editingIntegration, setEditingIntegration] = useState(null);
   const [showCredentials, setShowCredentials] = useState({});
-  const [tempLogoUrl, setTempLogoUrl] = useState(""); // <- para cuando aún no exista config
+  const [tempLogoUrl, setTempLogoUrl] = useState(""); // para cuando aún no exista config
 
   const { data: config, isLoading: loadingConfig } = useQuery({
     queryKey: ["businessConfig"],
@@ -78,7 +90,6 @@ export default function Settings() {
     queryFn: () => base44.entities.Integration.list()
   });
 
-  // Upsert: si existe config -> update; si no -> create
   const upsertConfigMutation = useMutation({
     mutationFn: async (data) => {
       if (config?.id) {
@@ -86,8 +97,13 @@ export default function Settings() {
       }
       return base44.entities.BusinessConfig.create(data);
     },
-    onSuccess: () => {
+    onSuccess: (saved) => {
+      // ✅ actualiza UI inmediatamente
+      queryClient.setQueryData(["businessConfig"], saved);
+
+      // ✅ refetch por consistencia (campos añadidos por backend, etc.)
       queryClient.invalidateQueries({ queryKey: ["businessConfig"] });
+
       toast.success("Configuración guardada");
     }
   });
@@ -111,35 +127,68 @@ export default function Settings() {
   });
 
   const handleLogoUpload = async (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
 
     setUploadingLogo(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
-      // Si ya hay config -> persistimos. Si no -> lo guardamos temporal y se aplicará al guardar.
       if (config?.id) {
-        upsertConfigMutation.mutate({ logo_url: file_url });
+        // ✅ si ya existe config, guardamos en backend y refrescamos UI al instante
+        const saved = await base44.entities.BusinessConfig.update(config.id, { logo_url: file_url });
+        queryClient.setQueryData(["businessConfig"], saved);
+        queryClient.invalidateQueries({ queryKey: ["businessConfig"] });
+        toast.success("Logo actualizado");
       } else {
+        // ✅ si no existe, guardamos temporal y se aplicará al guardar
         setTempLogoUrl(file_url);
         toast.success("Logo subido. Guarda la configuración para aplicarlo.");
       }
     } catch (error) {
       toast.error("Error al subir el logo");
+    } finally {
+      setUploadingLogo(false);
     }
-    setUploadingLogo(false);
   };
 
-  const handleConfigSubmit = (e) => {
+  const handleRemoveLogo = async () => {
+    try {
+      if (config?.id) {
+        const saved = await base44.entities.BusinessConfig.update(config.id, { logo_url: "" });
+        queryClient.setQueryData(["businessConfig"], saved);
+        queryClient.invalidateQueries({ queryKey: ["businessConfig"] });
+      } else {
+        setTempLogoUrl("");
+      }
+      toast.success("Logo eliminado");
+    } catch (e) {
+      toast.error("No se pudo eliminar el logo");
+    }
+  };
+
+  const handleConfigSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData);
 
-    // Asegura que el logo se guarde incluso si aún no existe config
-    data.logo_url = effectiveLogoUrl;
+    // asegúrate de aplicar el logo temporal al crear
+    if (!config?.id && tempLogoUrl) {
+      data.logo_url = tempLogoUrl;
+    }
 
-    upsertConfigMutation.mutate(data);
+    try {
+      const saved = await upsertConfigMutation.mutateAsync(data);
+
+      // ✅ “refresco” global inmediato (por si el dashboard usa esta query)
+      queryClient.setQueryData(["businessConfig"], saved);
+      queryClient.invalidateQueries({ queryKey: ["businessConfig"] });
+
+      // ✅ redirigir al dashboard (tu main page)
+      navigate("/", { replace: true });
+    } catch (error) {
+      toast.error("Error guardando la configuración");
+    }
   };
 
   const handleIntegrationSubmit = (e) => {
@@ -172,14 +221,6 @@ export default function Settings() {
       id: existing?.id,
       data: existing || { is_active: false, test_mode: true, credentials: {} }
     });
-  };
-
-  const handleRemoveLogo = () => {
-    if (config?.id) {
-      upsertConfigMutation.mutate({ logo_url: "" });
-    } else {
-      setTempLogoUrl("");
-    }
   };
 
   if (loadingConfig) {
@@ -235,7 +276,11 @@ export default function Settings() {
                 <CardTitle>Datos del Negocio</CardTitle>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleConfigSubmit} className="space-y-6">
+                <form
+                  key={config?.id || "new-config"}   // ✅ remount cuando se crea config (evita issues con defaultValue)
+                  onSubmit={handleConfigSubmit}
+                  className="space-y-6"
+                >
                   {/* Logo */}
                   <div className="space-y-2">
                     <Label>Logo</Label>
@@ -260,6 +305,7 @@ export default function Settings() {
                           <ImageIcon className="w-8 h-8 text-slate-400" />
                         </div>
                       )}
+
                       <div>
                         <input
                           type="file"
@@ -323,72 +369,6 @@ export default function Settings() {
                     {upsertConfigMutation.isPending ? "Guardando..." : "Guardar Cambios"}
                   </Button>
                 </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Tab: Plan (se mantiene por si lo usas; está protegido con defaults) */}
-          <TabsContent value="plan">
-            <Card>
-              <CardHeader>
-                <CardTitle>Plan Actual</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {(() => {
-                  const planKey = effectiveConfig.plan || "basico";
-                  const plan = PLANS[planKey] || PLANS.basico;
-                  const limits = effectiveConfig.plan_limits || DEFAULT_CONFIG.plan_limits;
-
-                  return (
-                    <>
-                      <div className="flex items-center justify-between p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
-                        <div>
-                          <Badge className={plan.color + " mb-2"}>{plan.name}</Badge>
-                          <p className="text-2xl font-bold">{plan.price}</p>
-                        </div>
-                        <Button variant="outline">Cambiar Plan</Button>
-                      </div>
-
-                      <div>
-                        <h3 className="font-semibold text-lg mb-4">Límites de tu Plan</h3>
-                        <div className="grid md:grid-cols-3 gap-4">
-                          <Card>
-                            <CardContent className="p-4">
-                              <p className="text-sm text-slate-600">Tiendas</p>
-                              <p className="text-2xl font-bold">{limits.max_stores === -1 ? "∞" : limits.max_stores}</p>
-                            </CardContent>
-                          </Card>
-                          <Card>
-                            <CardContent className="p-4">
-                              <p className="text-sm text-slate-600">Productos</p>
-                              <p className="text-2xl font-bold">
-                                {limits.max_products === -1 ? "∞" : limits.max_products}
-                              </p>
-                            </CardContent>
-                          </Card>
-                          <Card>
-                            <CardContent className="p-4">
-                              <p className="text-sm text-slate-600">Usuarios</p>
-                              <p className="text-2xl font-bold">{limits.max_users === -1 ? "∞" : limits.max_users}</p>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h3 className="font-semibold text-lg mb-3">Funcionalidades Incluidas</h3>
-                        <div className="grid md:grid-cols-2 gap-2">
-                          {(limits.features || []).map((feature) => (
-                            <div key={feature} className="flex items-center gap-2 text-sm">
-                              <span className="text-green-600">✓</span>
-                              <span className="capitalize">{String(feature).replace("_", " ")}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  );
-                })()}
               </CardContent>
             </Card>
           </TabsContent>
@@ -498,7 +478,9 @@ export default function Settings() {
                     <Button type="button" variant="outline" onClick={() => setEditingIntegration(null)}>
                       Cancelar
                     </Button>
-                    <Button type="submit">Guardar Integración</Button>
+                    <Button type="submit">
+                      Guardar Integración
+                    </Button>
                   </div>
                 </form>
               </CardContent>

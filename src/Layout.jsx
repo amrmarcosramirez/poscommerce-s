@@ -105,7 +105,7 @@ export default function Layout({ children, currentPageName }) {
     return children;
   }*/
 
-  const businessName = config?.business_name || "POSCommerce";
+  const businessName = config?.business_name || "POSCommerce-s";
   const businessLogo = config?.logo_url || null;
 
   return (

@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,22 +15,44 @@ import {
   Image as ImageIcon,
   X,
   Lock,
-  Unlock
+  Unlock,
 } from "lucide-react";
 import { toast } from "sonner";
 
+const DASHBOARD_PATH = "/"; // <- cambia a "/dashboard" si tu dashboard real está ahí
+
 const PLANS = {
   basico: { name: "Plan Básico", price: "19€/mes", color: "bg-blue-100 text-blue-800" },
-  profesional: { name: "Plan Profesional", price: "49€/mes", color: "bg-purple-100 text-purple-800" }
+  profesional: { name: "Plan Profesional", price: "49€/mes", color: "bg-purple-100 text-purple-800" },
 };
 
 const INTEGRATION_TYPES = {
-  redsys: { name: "Redsys (TPV Bancario)", icon: "💳", description: "Pasarela de pago española", fields: ["merchant_code", "secret_key", "terminal"] },
-  stripe: { name: "Stripe", icon: "💳", description: "Pasarela de pago internacional", fields: ["api_key", "webhook_secret"] },
-  twilio: { name: "Twilio SMS", icon: "📱", description: "Envío de SMS a clientes", fields: ["account_sid", "auth_token", "phone_number"] },
-  correos: { name: "Correos Express", icon: "📦", description: "Integración con Correos", fields: ["api_key", "api_url"] },
+  redsys: {
+    name: "Redsys (TPV Bancario)",
+    icon: "💳",
+    description: "Pasarela de pago española",
+    fields: ["merchant_code", "secret_key", "terminal"],
+  },
+  stripe: {
+    name: "Stripe",
+    icon: "💳",
+    description: "Pasarela de pago internacional",
+    fields: ["api_key", "webhook_secret"],
+  },
+  twilio: {
+    name: "Twilio SMS",
+    icon: "📱",
+    description: "Envío de SMS a clientes",
+    fields: ["account_sid", "auth_token", "phone_number"],
+  },
+  correos: {
+    name: "Correos Express",
+    icon: "📦",
+    description: "Integración con Correos",
+    fields: ["api_key", "api_url"],
+  },
   mrw: { name: "MRW", icon: "🚚", description: "Mensajería MRW", fields: ["api_key"] },
-  seur: { name: "SEUR", icon: "📮", description: "Mensajería SEUR", fields: ["api_key"] }
+  seur: { name: "SEUR", icon: "📮", description: "Mensajería SEUR", fields: ["api_key"] },
 };
 
 const FIELD_LABELS = {
@@ -43,7 +64,7 @@ const FIELD_LABELS = {
   auth_token: "Auth Token",
   phone_number: "Número de Teléfono",
   api_url: "URL de API",
-  webhook_secret: "Webhook Secret"
+  webhook_secret: "Webhook Secret",
 };
 
 const DEFAULT_CONFIG = {
@@ -61,25 +82,24 @@ const DEFAULT_CONFIG = {
     max_stores: 0,
     max_products: 0,
     max_users: 0,
-    features: []
-  }
+    features: [],
+  },
 };
 
 export default function Settings() {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
 
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [editingIntegration, setEditingIntegration] = useState(null);
   const [showCredentials, setShowCredentials] = useState({});
-  const [tempLogoUrl, setTempLogoUrl] = useState(""); // para cuando aún no exista config
+  const [tempLogoUrl, setTempLogoUrl] = useState("");
 
   const { data: config, isLoading: loadingConfig } = useQuery({
     queryKey: ["businessConfig"],
     queryFn: async () => {
       const configs = await base44.entities.BusinessConfig.list();
       return configs[0] || null;
-    }
+    },
   });
 
   const effectiveConfig = config ?? DEFAULT_CONFIG;
@@ -87,8 +107,22 @@ export default function Settings() {
 
   const { data: integrations = [] } = useQuery({
     queryKey: ["integrations"],
-    queryFn: () => base44.entities.Integration.list()
+    queryFn: () => base44.entities.Integration.list(),
   });
+
+  // Helper: actualiza todas las queries relacionadas con businessConfig (por si en otras pantallas usas keys distintas)
+  const updateBusinessConfigEverywhere = (saved) => {
+    // Exacta
+    queryClient.setQueryData(["businessConfig"], saved);
+
+    // Amplia: cualquier query que empiece por "businessConfig"
+    queryClient.setQueriesData(
+      {
+        predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "businessConfig",
+      },
+      saved
+    );
+  };
 
   const upsertConfigMutation = useMutation({
     mutationFn: async (data) => {
@@ -98,14 +132,16 @@ export default function Settings() {
       return base44.entities.BusinessConfig.create(data);
     },
     onSuccess: (saved) => {
-      // ✅ actualiza UI inmediatamente
-      queryClient.setQueryData(["businessConfig"], saved);
+      // UI inmediata
+      updateBusinessConfigEverywhere(saved);
 
-      // ✅ refetch por consistencia (campos añadidos por backend, etc.)
-      queryClient.invalidateQueries({ queryKey: ["businessConfig"] });
+      // Refetch por consistencia (si el backend añade/normaliza campos)
+      queryClient.invalidateQueries({
+        predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "businessConfig",
+      });
 
       toast.success("Configuración guardada");
-    }
+    },
   });
 
   const createIntegrationMutation = useMutation({
@@ -114,7 +150,7 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ["integrations"] });
       setEditingIntegration(null);
       toast.success("Integración configurada");
-    }
+    },
   });
 
   const updateIntegrationMutation = useMutation({
@@ -123,7 +159,7 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ["integrations"] });
       setEditingIntegration(null);
       toast.success("Integración actualizada");
-    }
+    },
   });
 
   const handleLogoUpload = async (e) => {
@@ -135,13 +171,20 @@ export default function Settings() {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
       if (config?.id) {
-        // ✅ si ya existe config, guardamos en backend y refrescamos UI al instante
+        // Guardar ya en backend
         const saved = await base44.entities.BusinessConfig.update(config.id, { logo_url: file_url });
-        queryClient.setQueryData(["businessConfig"], saved);
-        queryClient.invalidateQueries({ queryKey: ["businessConfig"] });
+
+        // UI inmediata
+        updateBusinessConfigEverywhere(saved);
+
+        // Refetch de consistencia
+        queryClient.invalidateQueries({
+          predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "businessConfig",
+        });
+
         toast.success("Logo actualizado");
       } else {
-        // ✅ si no existe, guardamos temporal y se aplicará al guardar
+        // Aún no existe config: guardamos temporal y se aplicará al guardar
         setTempLogoUrl(file_url);
         toast.success("Logo subido. Guarda la configuración para aplicarlo.");
       }
@@ -156,8 +199,10 @@ export default function Settings() {
     try {
       if (config?.id) {
         const saved = await base44.entities.BusinessConfig.update(config.id, { logo_url: "" });
-        queryClient.setQueryData(["businessConfig"], saved);
-        queryClient.invalidateQueries({ queryKey: ["businessConfig"] });
+        updateBusinessConfigEverywhere(saved);
+        queryClient.invalidateQueries({
+          predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "businessConfig",
+        });
       } else {
         setTempLogoUrl("");
       }
@@ -172,20 +217,18 @@ export default function Settings() {
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData);
 
-    // asegúrate de aplicar el logo temporal al crear
-    if (!config?.id && tempLogoUrl) {
-      data.logo_url = tempLogoUrl;
-    }
+    // aplica logo temporal si no había config aún
+    if (!config?.id && tempLogoUrl) data.logo_url = tempLogoUrl;
 
     try {
       const saved = await upsertConfigMutation.mutateAsync(data);
 
-      // ✅ “refresco” global inmediato (por si el dashboard usa esta query)
-      queryClient.setQueryData(["businessConfig"], saved);
-      queryClient.invalidateQueries({ queryKey: ["businessConfig"] });
+      // refuerzo de cache antes del redirect
+      updateBusinessConfigEverywhere(saved);
 
-      // ✅ redirigir al dashboard (tu main page)
-      navigate("/", { replace: true });
+      // ✅ Requisito: refrescar automáticamente la app + redirigir al dashboard
+      // Esto fuerza a que AuthContext/Layout/PublicSettings/etc. se recalculen sin depender de cachés.
+      window.location.replace(DASHBOARD_PATH);
     } catch (error) {
       toast.error("Error guardando la configuración");
     }
@@ -199,7 +242,7 @@ export default function Settings() {
       is_active: formData.get("is_active") === "true",
       test_mode: formData.get("test_mode") === "true",
       credentials: {},
-      notes: formData.get("notes") || ""
+      notes: formData.get("notes") || "",
     };
 
     INTEGRATION_TYPES[editingIntegration.type].fields.forEach((field) => {
@@ -219,7 +262,7 @@ export default function Settings() {
     setEditingIntegration({
       type,
       id: existing?.id,
-      data: existing || { is_active: false, test_mode: true, credentials: {} }
+      data: existing || { is_active: false, test_mode: true, credentials: {} },
     });
   };
 
@@ -277,7 +320,7 @@ export default function Settings() {
               </CardHeader>
               <CardContent>
                 <form
-                  key={config?.id || "new-config"}   // ✅ remount cuando se crea config (evita issues con defaultValue)
+                  key={config?.id || "new-config"} // remount al crear (evita problemas de defaultValue)
                   onSubmit={handleConfigSubmit}
                   className="space-y-6"
                 >
@@ -455,7 +498,9 @@ export default function Settings() {
                         />
                         <button
                           type="button"
-                          onClick={() => setShowCredentials({ ...showCredentials, [field]: !showCredentials[field] })}
+                          onClick={() =>
+                            setShowCredentials({ ...showCredentials, [field]: !showCredentials[field] })
+                          }
                           className="absolute right-2 top-1/2 -translate-y-1/2"
                         >
                           {showCredentials[field] ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
@@ -478,9 +523,7 @@ export default function Settings() {
                     <Button type="button" variant="outline" onClick={() => setEditingIntegration(null)}>
                       Cancelar
                     </Button>
-                    <Button type="submit">
-                      Guardar Integración
-                    </Button>
+                    <Button type="submit">Guardar Integración</Button>
                   </div>
                 </form>
               </CardContent>

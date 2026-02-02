@@ -7,22 +7,52 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Settings as SettingsIcon, Building2, CreditCard, Plug, Upload, Image as ImageIcon, X, Lock, Unlock } from "lucide-react";
+import {
+  Settings as SettingsIcon,
+  Building2,
+  Plug,
+  Upload,
+  Image as ImageIcon,
+  X,
+  Lock,
+  Unlock,
+} from "lucide-react";
 import { toast } from "sonner";
+
+const DASHBOARD_PATH = "/"; // <- cambia a "/dashboard" si tu dashboard real está ahí
 
 const PLANS = {
   basico: { name: "Plan Básico", price: "19€/mes", color: "bg-blue-100 text-blue-800" },
-  profesional: { name: "Plan Profesional", price: "49€/mes", color: "bg-purple-100 text-purple-800" }
+  profesional: { name: "Plan Profesional", price: "49€/mes", color: "bg-purple-100 text-purple-800" },
 };
 
 const INTEGRATION_TYPES = {
-  redsys: { name: "Redsys (TPV Bancario)", icon: "💳", description: "Pasarela de pago española", fields: ["merchant_code", "secret_key", "terminal"] },
-  stripe: { name: "Stripe", icon: "💳", description: "Pasarela de pago internacional", fields: ["api_key", "webhook_secret"] },
-  twilio: { name: "Twilio SMS", icon: "📱", description: "Envío de SMS a clientes", fields: ["account_sid", "auth_token", "phone_number"] },
-  correos: { name: "Correos Express", icon: "📦", description: "Integración con Correos", fields: ["api_key", "api_url"] },
+  redsys: {
+    name: "Redsys (TPV Bancario)",
+    icon: "💳",
+    description: "Pasarela de pago española",
+    fields: ["merchant_code", "secret_key", "terminal"],
+  },
+  stripe: {
+    name: "Stripe",
+    icon: "💳",
+    description: "Pasarela de pago internacional",
+    fields: ["api_key", "webhook_secret"],
+  },
+  twilio: {
+    name: "Twilio SMS",
+    icon: "📱",
+    description: "Envío de SMS a clientes",
+    fields: ["account_sid", "auth_token", "phone_number"],
+  },
+  correos: {
+    name: "Correos Express",
+    icon: "📦",
+    description: "Integración con Correos",
+    fields: ["api_key", "api_url"],
+  },
   mrw: { name: "MRW", icon: "🚚", description: "Mensajería MRW", fields: ["api_key"] },
-  seur: { name: "SEUR", icon: "📮", description: "Mensajería SEUR", fields: ["api_key"] }
+  seur: { name: "SEUR", icon: "📮", description: "Mensajería SEUR", fields: ["api_key"] },
 };
 
 const FIELD_LABELS = {
@@ -34,40 +64,90 @@ const FIELD_LABELS = {
   auth_token: "Auth Token",
   phone_number: "Número de Teléfono",
   api_url: "URL de API",
-  webhook_secret: "Webhook Secret"
+  webhook_secret: "Webhook Secret",
+};
+
+const DEFAULT_CONFIG = {
+  business_name: "",
+  cif: "",
+  legal_name: "",
+  address: "",
+  city: "",
+  postal_code: "",
+  phone: "",
+  email: "",
+  logo_url: "",
+  plan: "basico",
+  plan_limits: {
+    max_stores: 0,
+    max_products: 0,
+    max_users: 0,
+    features: [],
+  },
 };
 
 export default function Settings() {
   const queryClient = useQueryClient();
+
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [editingIntegration, setEditingIntegration] = useState(null);
   const [showCredentials, setShowCredentials] = useState({});
+  const [tempLogoUrl, setTempLogoUrl] = useState("");
 
   const { data: config, isLoading: loadingConfig } = useQuery({
-    queryKey: ['businessConfig'],
+    queryKey: ["businessConfig"],
     queryFn: async () => {
       const configs = await base44.entities.BusinessConfig.list();
       return configs[0] || null;
     },
   });
 
+  const effectiveConfig = config ?? DEFAULT_CONFIG;
+  const effectiveLogoUrl = config?.logo_url || tempLogoUrl || "";
+
   const { data: integrations = [] } = useQuery({
-    queryKey: ['integrations'],
+    queryKey: ["integrations"],
     queryFn: () => base44.entities.Integration.list(),
   });
 
-  const updateConfigMutation = useMutation({
-    mutationFn: (data) => base44.entities.BusinessConfig.update(config.id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['businessConfig'] });
-      toast.success("Configuración actualizada");
+  // Helper: actualiza todas las queries relacionadas con businessConfig (por si en otras pantallas usas keys distintas)
+  const updateBusinessConfigEverywhere = (saved) => {
+    // Exacta
+    queryClient.setQueryData(["businessConfig"], saved);
+
+    // Amplia: cualquier query que empiece por "businessConfig"
+    queryClient.setQueriesData(
+      {
+        predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "businessConfig",
+      },
+      saved
+    );
+  };
+
+  const upsertConfigMutation = useMutation({
+    mutationFn: async (data) => {
+      if (config?.id) {
+        return base44.entities.BusinessConfig.update(config.id, data);
+      }
+      return base44.entities.BusinessConfig.create(data);
+    },
+    onSuccess: (saved) => {
+      // UI inmediata
+      updateBusinessConfigEverywhere(saved);
+
+      // Refetch por consistencia (si el backend añade/normaliza campos)
+      queryClient.invalidateQueries({
+        predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "businessConfig",
+      });
+
+      toast.success("Configuración guardada");
     },
   });
 
   const createIntegrationMutation = useMutation({
     mutationFn: (data) => base44.entities.Integration.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['integrations'] });
+      queryClient.invalidateQueries({ queryKey: ["integrations"] });
       setEditingIntegration(null);
       toast.success("Integración configurada");
     },
@@ -76,31 +156,82 @@ export default function Settings() {
   const updateIntegrationMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Integration.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['integrations'] });
+      queryClient.invalidateQueries({ queryKey: ["integrations"] });
       setEditingIntegration(null);
       toast.success("Integración actualizada");
     },
   });
 
   const handleLogoUpload = async (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
 
     setUploadingLogo(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      updateConfigMutation.mutate({ logo_url: file_url });
+
+      if (config?.id) {
+        // Guardar ya en backend
+        const saved = await base44.entities.BusinessConfig.update(config.id, { logo_url: file_url });
+
+        // UI inmediata
+        updateBusinessConfigEverywhere(saved);
+
+        // Refetch de consistencia
+        queryClient.invalidateQueries({
+          predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "businessConfig",
+        });
+
+        toast.success("Logo actualizado");
+      } else {
+        // Aún no existe config: guardamos temporal y se aplicará al guardar
+        setTempLogoUrl(file_url);
+        toast.success("Logo subido. Guarda la configuración para aplicarlo.");
+      }
     } catch (error) {
       toast.error("Error al subir el logo");
+    } finally {
+      setUploadingLogo(false);
     }
-    setUploadingLogo(false);
   };
 
-  const handleConfigSubmit = (e) => {
+  const handleRemoveLogo = async () => {
+    try {
+      if (config?.id) {
+        const saved = await base44.entities.BusinessConfig.update(config.id, { logo_url: "" });
+        updateBusinessConfigEverywhere(saved);
+        queryClient.invalidateQueries({
+          predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "businessConfig",
+        });
+      } else {
+        setTempLogoUrl("");
+      }
+      toast.success("Logo eliminado");
+    } catch (e) {
+      toast.error("No se pudo eliminar el logo");
+    }
+  };
+
+  const handleConfigSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData);
-    updateConfigMutation.mutate(data);
+
+    // aplica logo temporal si no había config aún
+    if (!config?.id && tempLogoUrl) data.logo_url = tempLogoUrl;
+
+    try {
+      const saved = await upsertConfigMutation.mutateAsync(data);
+
+      // refuerzo de cache antes del redirect
+      updateBusinessConfigEverywhere(saved);
+
+      // ✅ Requisito: refrescar automáticamente la app + redirigir al dashboard
+      // Esto fuerza a que AuthContext/Layout/PublicSettings/etc. se recalculen sin depender de cachés.
+      window.location.replace(DASHBOARD_PATH);
+    } catch (error) {
+      toast.error("Error guardando la configuración");
+    }
   };
 
   const handleIntegrationSubmit = (e) => {
@@ -108,13 +239,13 @@ export default function Settings() {
     const formData = new FormData(e.target);
     const data = {
       integration_type: editingIntegration.type,
-      is_active: formData.get('is_active') === 'true',
-      test_mode: formData.get('test_mode') === 'true',
+      is_active: formData.get("is_active") === "true",
+      test_mode: formData.get("test_mode") === "true",
       credentials: {},
-      notes: formData.get('notes') || ""
+      notes: formData.get("notes") || "",
     };
 
-    INTEGRATION_TYPES[editingIntegration.type].fields.forEach(field => {
+    INTEGRATION_TYPES[editingIntegration.type].fields.forEach((field) => {
       const value = formData.get(field);
       if (value) data.credentials[field] = value;
     });
@@ -127,11 +258,11 @@ export default function Settings() {
   };
 
   const openIntegrationForm = (type) => {
-    const existing = integrations.find(i => i.integration_type === type);
+    const existing = integrations.find((i) => i.integration_type === type);
     setEditingIntegration({
       type,
       id: existing?.id,
-      data: existing || { is_active: false, test_mode: true, credentials: {} }
+      data: existing || { is_active: false, test_mode: true, credentials: {} },
     });
   };
 
@@ -148,23 +279,6 @@ export default function Settings() {
     );
   }
 
-  if (!config) {
-    return (
-      <div className="p-6 lg:p-8 flex items-center justify-center min-h-screen">
-        <Card className="max-w-md shadow-xl">
-          <CardContent className="p-8 text-center">
-            <SettingsIcon className="w-16 h-16 mx-auto mb-4 text-slate-400" />
-            <h2 className="text-2xl font-bold mb-2">Configura tu Negocio</h2>
-            <p className="text-slate-600 mb-4">Completa el onboarding primero</p>
-            <Button onClick={() => window.location.href = '/onboarding'}>
-              Ir al Onboarding
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="p-6 lg:p-8">
       <div className="max-w-5xl mx-auto">
@@ -176,8 +290,18 @@ export default function Settings() {
           <p className="text-slate-600 mt-1">Administra tu negocio e integraciones</p>
         </div>
 
+        {!config && (
+          <div className="mb-6">
+            <Card className="border-amber-200 bg-amber-50">
+              <CardContent className="p-4 text-sm text-amber-900">
+                Aún no existe configuración del negocio. Rellena los datos y pulsa <b>Guardar Cambios</b> para crearla.
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         <Tabs defaultValue="business" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="business">
               <Building2 className="w-4 h-4 mr-2" />
               Negocio
@@ -195,21 +319,25 @@ export default function Settings() {
                 <CardTitle>Datos del Negocio</CardTitle>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleConfigSubmit} className="space-y-6">
+                <form
+                  key={config?.id || "new-config"} // remount al crear (evita problemas de defaultValue)
+                  onSubmit={handleConfigSubmit}
+                  className="space-y-6"
+                >
                   {/* Logo */}
                   <div className="space-y-2">
                     <Label>Logo</Label>
                     <div className="flex items-center gap-4">
-                      {config.logo_url ? (
+                      {effectiveLogoUrl ? (
                         <div className="relative">
                           <img
-                            src={config.logo_url}
+                            src={effectiveLogoUrl}
                             alt="Logo"
                             className="w-24 h-24 object-contain rounded-lg border"
                           />
                           <button
                             type="button"
-                            onClick={() => updateConfigMutation.mutate({ logo_url: "" })}
+                            onClick={handleRemoveLogo}
                             className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
                           >
                             <X className="w-4 h-4" />
@@ -220,6 +348,7 @@ export default function Settings() {
                           <ImageIcon className="w-8 h-8 text-slate-400" />
                         </div>
                       )}
+
                       <div>
                         <input
                           type="file"
@@ -233,7 +362,7 @@ export default function Settings() {
                             type="button"
                             variant="outline"
                             disabled={uploadingLogo}
-                            onClick={() => document.getElementById('logo-upload-settings').click()}
+                            onClick={() => document.getElementById("logo-upload-settings").click()}
                             className="cursor-pointer"
                           >
                             <Upload className="w-4 h-4 mr-2" />
@@ -247,138 +376,42 @@ export default function Settings() {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="business_name">Nombre Comercial</Label>
-                      <Input
-                        id="business_name"
-                        name="business_name"
-                        defaultValue={config.business_name}
-                        required
-                      />
+                      <Input id="business_name" name="business_name" defaultValue={effectiveConfig.business_name} required />
                     </div>
                     <div>
                       <Label htmlFor="cif">CIF/NIF</Label>
-                      <Input
-                        id="cif"
-                        name="cif"
-                        defaultValue={config.cif}
-                      />
+                      <Input id="cif" name="cif" defaultValue={effectiveConfig.cif} />
                     </div>
                     <div className="md:col-span-2">
                       <Label htmlFor="legal_name">Razón Social</Label>
-                      <Input
-                        id="legal_name"
-                        name="legal_name"
-                        defaultValue={config.legal_name}
-                      />
+                      <Input id="legal_name" name="legal_name" defaultValue={effectiveConfig.legal_name} />
                     </div>
                     <div className="md:col-span-2">
                       <Label htmlFor="address">Dirección</Label>
-                      <Input
-                        id="address"
-                        name="address"
-                        defaultValue={config.address}
-                      />
+                      <Input id="address" name="address" defaultValue={effectiveConfig.address} />
                     </div>
                     <div>
                       <Label htmlFor="city">Ciudad</Label>
-                      <Input
-                        id="city"
-                        name="city"
-                        defaultValue={config.city}
-                      />
+                      <Input id="city" name="city" defaultValue={effectiveConfig.city} />
                     </div>
                     <div>
                       <Label htmlFor="postal_code">Código Postal</Label>
-                      <Input
-                        id="postal_code"
-                        name="postal_code"
-                        defaultValue={config.postal_code}
-                      />
+                      <Input id="postal_code" name="postal_code" defaultValue={effectiveConfig.postal_code} />
                     </div>
                     <div>
                       <Label htmlFor="phone">Teléfono</Label>
-                      <Input
-                        id="phone"
-                        name="phone"
-                        defaultValue={config.phone}
-                      />
+                      <Input id="phone" name="phone" defaultValue={effectiveConfig.phone} />
                     </div>
                     <div>
                       <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        defaultValue={config.email}
-                      />
+                      <Input id="email" name="email" type="email" defaultValue={effectiveConfig.email} />
                     </div>
                   </div>
 
-                  <Button type="submit" disabled={updateConfigMutation.isPending}>
-                    {updateConfigMutation.isPending ? "Guardando..." : "Guardar Cambios"}
+                  <Button type="submit" disabled={upsertConfigMutation.isPending}>
+                    {upsertConfigMutation.isPending ? "Guardando..." : "Guardar Cambios"}
                   </Button>
                 </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Tab: Plan */}
-          <TabsContent value="plan">
-            <Card>
-              <CardHeader>
-                <CardTitle>Plan Actual</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
-                  <div>
-                    <Badge className={PLANS[config.plan].color + " mb-2"}>
-                      {PLANS[config.plan].name}
-                    </Badge>
-                    <p className="text-2xl font-bold">{PLANS[config.plan].price}</p>
-                  </div>
-                  <Button variant="outline">Cambiar Plan</Button>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-lg mb-4">Límites de tu Plan</h3>
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <Card>
-                      <CardContent className="p-4">
-                        <p className="text-sm text-slate-600">Tiendas</p>
-                        <p className="text-2xl font-bold">
-                          {config.plan_limits.max_stores === -1 ? '∞' : config.plan_limits.max_stores}
-                        </p>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="p-4">
-                        <p className="text-sm text-slate-600">Productos</p>
-                        <p className="text-2xl font-bold">
-                          {config.plan_limits.max_products === -1 ? '∞' : config.plan_limits.max_products}
-                        </p>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="p-4">
-                        <p className="text-sm text-slate-600">Usuarios</p>
-                        <p className="text-2xl font-bold">
-                          {config.plan_limits.max_users === -1 ? '∞' : config.plan_limits.max_users}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-lg mb-3">Funcionalidades Incluidas</h3>
-                  <div className="grid md:grid-cols-2 gap-2">
-                    {config.plan_limits.features?.map(feature => (
-                      <div key={feature} className="flex items-center gap-2 text-sm">
-                        <span className="text-green-600">✓</span>
-                        <span className="capitalize">{feature.replace('_', ' ')}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -387,7 +420,7 @@ export default function Settings() {
           <TabsContent value="integrations">
             <div className="space-y-4">
               {Object.entries(INTEGRATION_TYPES).map(([key, integration]) => {
-                const existing = integrations.find(i => i.integration_type === key);
+                const existing = integrations.find((i) => i.integration_type === key);
                 return (
                   <Card key={key}>
                     <CardContent className="p-6">
@@ -405,10 +438,7 @@ export default function Settings() {
                               {existing.is_active ? "Activa" : "Inactiva"}
                             </Badge>
                           )}
-                          <Button
-                            variant="outline"
-                            onClick={() => openIntegrationForm(key)}
-                          >
+                          <Button variant="outline" onClick={() => openIntegrationForm(key)}>
                             {existing ? "Configurar" : "Conectar"}
                           </Button>
                         </div>
@@ -455,7 +485,7 @@ export default function Settings() {
                     </Label>
                   </div>
 
-                  {INTEGRATION_TYPES[editingIntegration.type].fields.map(field => (
+                  {INTEGRATION_TYPES[editingIntegration.type].fields.map((field) => (
                     <div key={field}>
                       <Label htmlFor={field}>{FIELD_LABELS[field]}</Label>
                       <div className="relative">
@@ -468,7 +498,9 @@ export default function Settings() {
                         />
                         <button
                           type="button"
-                          onClick={() => setShowCredentials({...showCredentials, [field]: !showCredentials[field]})}
+                          onClick={() =>
+                            setShowCredentials({ ...showCredentials, [field]: !showCredentials[field] })
+                          }
                           className="absolute right-2 top-1/2 -translate-y-1/2"
                         >
                           {showCredentials[field] ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
@@ -491,9 +523,7 @@ export default function Settings() {
                     <Button type="button" variant="outline" onClick={() => setEditingIntegration(null)}>
                       Cancelar
                     </Button>
-                    <Button type="submit">
-                      Guardar Integración
-                    </Button>
+                    <Button type="submit">Guardar Integración</Button>
                   </div>
                 </form>
               </CardContent>

@@ -63,7 +63,7 @@ export default function Dashboard() {
       
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+          <h1 className="text-3xl font-bold text-slate-900">Panel de Control</h1>
           <p className="text-slate-600 mt-1">
             Resumen de tu negocio - {format(new Date(), "MMMM yyyy", { locale: es })}
           </p>

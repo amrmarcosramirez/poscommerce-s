@@ -27,7 +27,7 @@ import { LogOut } from "lucide-react";
 
 const navigationItems = [
   {
-    title: "Dashboard",
+    title: "Panel de Control",
     url: createPageUrl("Dashboard"),
     icon: LayoutDashboard,
   },

@@ -37,7 +37,7 @@ const navigationItems = [
     icon: ShoppingCart,
   },
   {
-    title: "eCommerce",
+    title: "Tienda Online",
     url: createPageUrl("eCommerce"),
     icon: Globe,
   },

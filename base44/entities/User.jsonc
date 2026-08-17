@@ -1,0 +1,13 @@
+{
+  "properties": {
+    "business_name": {
+      "type": "string",
+      "description": "Nombre del negocio/empresa"
+    }
+  },
+  "name": "User",
+  "type": "object",
+  "required": [
+    "business_name"
+  ]
+}

@@ -1,0 +1,291 @@
+{
+  "name": "Product",
+  "type": "object",
+  "properties": {
+    "sku": {
+      "type": "string",
+      "description": "C\u00f3digo SKU \u00fanico del producto"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nombre del producto"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descripci\u00f3n del producto"
+    },
+    "category": {
+      "type": "string",
+      "description": "Nombre de la categor\u00eda del producto"
+    },
+    "price": {
+      "type": "number",
+      "description": "Precio de venta (sin IVA)"
+    },
+    "price_by_store": {
+      "type": "array",
+      "description": "Precios diferentes por tienda",
+      "items": {
+        "type": "object",
+        "properties": {
+          "store_id": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          }
+        }
+      },
+      "default": []
+    },
+    "online_price": {
+      "type": "number",
+      "description": "Precio especial para tienda online (opcional)"
+    },
+    "cost": {
+      "type": "number",
+      "description": "Coste del producto"
+    },
+    "iva_rate": {
+      "type": "number",
+      "enum": [
+        0,
+        4,
+        10,
+        21
+      ],
+      "default": 21,
+      "description": "Tipo de IVA aplicable (%)"
+    },
+    "stock_mode": {
+      "type": "string",
+      "enum": [
+        "unique",
+        "by_store",
+        "by_group"
+      ],
+      "default": "unique",
+      "description": "Modo de gesti\u00f3n de stock: \u00fanico, por tienda o por grupos"
+    },
+    "stock": {
+      "type": "number",
+      "default": 0,
+      "description": "Stock \u00fanico (usado solo si stock_mode = unique)"
+    },
+    "stock_by_store": {
+      "type": "array",
+      "description": "Stock por tienda individual (usado si stock_mode = by_store)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "store_id": {
+            "type": "string"
+          },
+          "stock": {
+            "type": "number"
+          }
+        }
+      },
+      "default": []
+    },
+    "store_groups": {
+      "type": "array",
+      "description": "Grupos de tiendas con stock compartido (usado si stock_mode = by_group)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "store_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "stock": {
+            "type": "number"
+          }
+        }
+      },
+      "default": []
+    },
+    "min_stock": {
+      "type": "number",
+      "default": 5,
+      "description": "Stock m\u00ednimo de alerta"
+    },
+    "barcode": {
+      "type": "string",
+      "description": "C\u00f3digo de barras"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "URL de la imagen del producto"
+    },
+    "physical_stores": {
+      "type": "array",
+      "description": "IDs de las tiendas f\u00edsicas donde est\u00e1 disponible",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si el producto est\u00e1 activo"
+    },
+    "online_stores": {
+      "type": "array",
+      "description": "IDs de las tiendas online donde se muestra este producto",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "has_variants": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si el producto tiene variantes"
+    },
+    "variants": {
+      "type": "array",
+      "description": "Variantes del producto (tallas, colores, etc.)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "sku_variant": {
+            "type": "string"
+          },
+          "attributes": {
+            "type": "object",
+            "properties": {
+              "color": {
+                "type": "string"
+              },
+              "talla": {
+                "type": "string"
+              }
+            }
+          },
+          "price_adjustment": {
+            "type": "number",
+            "default": 0
+          },
+          "stock_mode": {
+            "type": "string",
+            "enum": [
+              "unique",
+              "by_store",
+              "by_group"
+            ],
+            "default": "unique"
+          },
+          "stock": {
+            "type": "number",
+            "default": 0
+          },
+          "stock_by_store": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "store_id": {
+                  "type": "string"
+                },
+                "stock": {
+                  "type": "number"
+                }
+              }
+            },
+            "default": []
+          },
+          "store_groups": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "store_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "stock": {
+                  "type": "number"
+                }
+              }
+            },
+            "default": []
+          },
+          "barcode": {
+            "type": "string"
+          },
+          "image_url": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "loyalty_points": {
+      "type": "number",
+      "default": 0,
+      "description": "Puntos que otorga este producto al comprarlo"
+    }
+  },
+  "required": [
+    "name",
+    "price",
+    "iva_rate"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "manager"
+          ]
+        }
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "manager",
+            "cashier"
+          ]
+        }
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "manager"
+          ]
+        }
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "manager"
+          ]
+        }
+      }
+    }
+  }
+}

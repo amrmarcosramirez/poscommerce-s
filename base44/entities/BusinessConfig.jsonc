@@ -1,0 +1,143 @@
+{
+  "name": "BusinessConfig",
+  "type": "object",
+  "properties": {
+    "business_name": {
+      "type": "string",
+      "description": "Nombre comercial del negocio"
+    },
+    "cif": {
+      "type": "string",
+      "description": "CIF/NIF del negocio"
+    },
+    "legal_name": {
+      "type": "string",
+      "description": "Raz\u00f3n social"
+    },
+    "address": {
+      "type": "string",
+      "description": "Direcci\u00f3n fiscal"
+    },
+    "city": {
+      "type": "string",
+      "description": "Ciudad"
+    },
+    "postal_code": {
+      "type": "string",
+      "description": "C\u00f3digo postal"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Tel\u00e9fono de contacto"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email de contacto"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "URL del logo del negocio"
+    },
+    "plan": {
+      "type": "string",
+      "enum": [
+        "basico",
+        "estandar",
+        "premium"
+      ],
+      "default": "basico",
+      "description": "Plan contratado"
+    },
+    "plan_limits": {
+      "type": "object",
+      "description": "L\u00edmites seg\u00fan el plan",
+      "properties": {
+        "max_stores": {
+          "type": "number"
+        },
+        "max_products": {
+          "type": "number"
+        },
+        "max_users": {
+          "type": "number"
+        },
+        "features": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "default": {
+        "max_stores": 1,
+        "max_products": 100,
+        "max_users": 2,
+        "features": [
+          "pos",
+          "basic_reports"
+        ]
+      }
+    },
+    "onboarding_completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si complet\u00f3 el onboarding inicial"
+    },
+    "trial_ends_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de finalizaci\u00f3n del periodo de prueba"
+    },
+    "subscription_status": {
+      "type": "string",
+      "enum": [
+        "trial",
+        "active",
+        "past_due",
+        "canceled",
+        "expired"
+      ],
+      "default": "trial",
+      "description": "Estado de la suscripci\u00f3n"
+    },
+    "stripe_customer_id": {
+      "type": "string",
+      "description": "ID de cliente en Stripe"
+    },
+    "stripe_subscription_id": {
+      "type": "string",
+      "description": "ID de suscripci\u00f3n en Stripe"
+    }
+  },
+  "required": [
+    "business_name"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "manager",
+            "cashier"
+          ]
+        }
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

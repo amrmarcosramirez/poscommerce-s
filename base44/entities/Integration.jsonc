@@ -1,0 +1,98 @@
+{
+  "name": "Integration",
+  "type": "object",
+  "properties": {
+    "integration_type": {
+      "type": "string",
+      "enum": [
+        "redsys",
+        "stripe",
+        "twilio",
+        "correos",
+        "mrw",
+        "seur",
+        "woocommerce",
+        "shopify"
+      ],
+      "description": "Tipo de integraci\u00f3n"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si la integraci\u00f3n est\u00e1 activa"
+    },
+    "credentials": {
+      "type": "object",
+      "description": "Credenciales encriptadas (API keys, secrets, etc.)",
+      "properties": {
+        "merchant_code": {
+          "type": "string"
+        },
+        "secret_key": {
+          "type": "string"
+        },
+        "terminal": {
+          "type": "string"
+        },
+        "account_sid": {
+          "type": "string"
+        },
+        "auth_token": {
+          "type": "string"
+        },
+        "phone_number": {
+          "type": "string"
+        },
+        "api_key": {
+          "type": "string"
+        },
+        "api_url": {
+          "type": "string"
+        },
+        "webhook_secret": {
+          "type": "string"
+        }
+      },
+      "default": {}
+    },
+    "test_mode": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si est\u00e1 en modo de pruebas"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notas de configuraci\u00f3n"
+    }
+  },
+  "required": [
+    "integration_type"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "manager"
+          ]
+        }
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
